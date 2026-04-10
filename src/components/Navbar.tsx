@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Menu, X } from "lucide-react";
+import { Link } from "react-router-dom";
 import logo from "@/assets/logo.png";
 
 const navLinks = [
@@ -35,6 +36,18 @@ const Navbar = () => {
               {l.label}
             </a>
           ))}
+          <Link
+            to="/vendor/login"
+            className="px-4 py-2.5 rounded-lg border border-border text-sm font-semibold text-foreground hover:bg-muted transition-colors"
+          >
+            Vendor Login
+          </Link>
+          <Link
+            to="/admin"
+            className="px-4 py-2.5 rounded-lg bg-secondary text-secondary-foreground font-semibold text-sm hover:opacity-90 transition-opacity"
+          >
+            Admin Panel
+          </Link>
           <a
             href="#booking"
             className="px-5 py-2.5 rounded-lg bg-primary text-primary-foreground font-semibold text-sm hover:opacity-90 transition-opacity"
@@ -67,6 +80,20 @@ const Navbar = () => {
                 {l.label}
               </a>
             ))}
+            <Link
+              to="/vendor/login"
+              className="text-sm font-medium text-muted-foreground hover:text-primary py-2"
+              onClick={() => setOpen(false)}
+            >
+              Vendor Login
+            </Link>
+            <Link
+              to="/admin"
+              className="text-sm font-medium text-muted-foreground hover:text-primary py-2"
+              onClick={() => setOpen(false)}
+            >
+              Admin Panel
+            </Link>
             <a
               href="#booking"
               className="mt-2 px-5 py-2.5 rounded-lg bg-primary text-primary-foreground font-semibold text-sm text-center"
