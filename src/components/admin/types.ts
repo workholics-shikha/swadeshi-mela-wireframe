@@ -5,6 +5,7 @@ export type PageId =
   | "categories"
   | "stalls"
   | "bookings"
+  | "booking-create"
   | "vendors"
   | "approvals"
   | "payments"

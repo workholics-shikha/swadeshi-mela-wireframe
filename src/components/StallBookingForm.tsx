@@ -10,6 +10,11 @@ const stallCategories = [
 
 const stallSizes = ["6×6 ft", "9×9 ft", "12×12 ft"];
 const states = ["Delhi", "Maharashtra", "Gujarat", "Rajasthan", "Uttar Pradesh", "Tamil Nadu", "Karnataka", "West Bengal", "Other"];
+const eventOptions = [
+  "Swadeshi Mela 2026 - Main Ground",
+  "Swadeshi Mela 2026 - Winter Edition",
+  "Swadeshi Mela 2025 - City Expo",
+];
 
 const StallBookingForm = () => {
   const [step, setStep] = useState(0);
@@ -17,7 +22,7 @@ const StallBookingForm = () => {
   const [otpSent, setOtpSent] = useState(false);
   const [form, setForm] = useState({
     name: "", email: "", mobile: "", businessName: "", gst: "", address: "", city: "",
-    state: "", pincode: "", stallCategory: "", stallSize: "", quantity: "1",
+    state: "", pincode: "", selectedEvent: "", stallCategory: "", stallSize: "", quantity: "1",
     bookingType: "Standard", paymentMode: "", transactionId: "", receipt: null as File | null,
   });
 
@@ -129,6 +134,13 @@ const StallBookingForm = () => {
           {step === 2 && (
             <div className="space-y-6">
               <div>
+                <label className={labelClass}>Event *</label>
+                <select className={inputClass} value={form.selectedEvent} onChange={(e) => update("selectedEvent", e.target.value)}>
+                  <option value="">Select Event</option>
+                  {eventOptions.map((eventName) => <option key={eventName} value={eventName}>{eventName}</option>)}
+                </select>
+              </div>
+              <div>
                 <label className={labelClass}>Stall Category *</label>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                   {stallCategories.map((c) => (
@@ -216,6 +228,7 @@ const StallBookingForm = () => {
                   ["Name", form.name], ["Email", form.email], ["Mobile", form.mobile],
                   ["Business", form.businessName], ["GST", form.gst || "N/A"],
                   ["Address", `${form.address}, ${form.city}, ${form.state} - ${form.pincode}`],
+                  ["Event", form.selectedEvent],
                   ["Stall Category", form.stallCategory], ["Stall Size", form.stallSize],
                   ["Quantity", form.quantity], ["Booking Type", form.bookingType],
                   ["Payment Mode", form.paymentMode], ["Transaction ID", form.transactionId || "N/A"],

@@ -11,6 +11,12 @@ const AdminPanel = () => {
 
   const navigation = roleNavigation[userRole];
   const resolvedPage = resolvePageForRole(activePage, userRole);
+  const activeSidebarItem: PageId =
+    resolvedPage === "event-create"
+      ? "events"
+      : resolvedPage === "booking-create"
+        ? "bookings"
+        : resolvedPage;
   const activeMeta = pageMeta[resolvedPage];
   const headerOverview = getPageHeaderOverview(resolvedPage, userRole);
 
@@ -18,7 +24,7 @@ const AdminPanel = () => {
     <div className="bg-festive-admin min-h-screen text-[var(--text-main)]">
       <div className="mx-auto flex min-h-screen w-full max-w-[1680px] flex-col lg:flex-row">
         <Sidebar
-          activeItem={resolvedPage}
+          activeItem={activeSidebarItem}
           onSelect={(id) => setActivePage(resolvePageForRole(id as PageId, userRole))}
           role={userRole}
           sections={navigation.sidebarSections}

@@ -4,6 +4,20 @@ import type { SetPage } from "./types";
 export function BookingOperationsPage({ setPage }: { setPage: SetPage }) {
   return (
     <div className="space-y-6">
+      <section className="bg-admin-panel flex flex-wrap items-center justify-between gap-3 rounded-[24px] border border-[color:var(--border-soft)] p-4 sm:p-5">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--text-muted)]">Manual booking desk</p>
+          <p className="mt-1 text-sm text-[var(--text-soft)]">Create a booking form on behalf of vendor with full profile details.</p>
+        </div>
+        <button
+          className="rounded-full bg-[linear-gradient(135deg,hsl(var(--saffron)),hsl(var(--maroon)))] px-5 py-2.5 text-sm font-semibold text-white"
+          onClick={() => setPage("booking-create")}
+          type="button"
+        >
+          Add booking
+        </button>
+      </section>
+
       <div className="grid gap-6 xl:grid-cols-[1.4fr_0.95fr]">
         <Card title="Today's Queue" subtitle="Priority actions for the booking desk.">
           <ActionList actions={[

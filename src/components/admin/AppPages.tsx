@@ -1,4 +1,5 @@
 import { ApprovalsPage } from "./ApprovalsPage";
+import { BookingCreatePage } from "./BookingCreatePage";
 import { BookingOperationsPage } from "./BookingOperationsPage";
 import { CategoryManagementPage } from "./CategoryManagementPage";
 import { DashboardPage } from "./DashboardPage";
@@ -19,7 +20,7 @@ type SidebarSection = { title: string; items: ReadonlyArray<SidebarItem> };
 type QuickAccessItem = { id: PageId; label: string };
 
 const roleAllowedPages: Record<UserRole, ReadonlyArray<PageId>> = {
-  Admin: ["dashboard","events","event-create","categories","stalls","bookings","vendors","approvals","payments","reports","notifications","settings"],
+  Admin: ["dashboard","events","event-create","categories","stalls","bookings","booking-create","vendors","approvals","payments","reports","notifications","settings"],
   Vendor: ["dashboard","bookings","vendors","payments","notifications","settings"],
 };
 
@@ -30,6 +31,7 @@ export const pageMeta: Record<PageId, PageMeta> = {
   categories: { title: "Category Management", description: "Manage event and stall categories, capacities, and category-wise availability." },
   stalls: { title: "Stalls & Booking", description: "Manage interactive stall allocation, occupancy, and zone-level availability." },
   bookings: { title: "Booking Operations", description: "Monitor reservation status, assignment queues, and booking support activity." },
+  "booking-create": { title: "Create Booking", description: "Create a booking on behalf of vendor and capture booking plus vendor details." },
   vendors: { title: "Vendor Hub", description: "Track vendor onboarding, applications, readiness, and account health." },
   approvals: { title: "Approvals Desk", description: "Review KYC, documents, notes, and approval decisions before confirmation." },
   payments: { title: "Payment Flow", description: "Review dues, transaction history, and payment readiness for booked stalls." },
@@ -40,7 +42,7 @@ export const pageMeta: Record<PageId, PageMeta> = {
 
 const adminSidebarSections: ReadonlyArray<SidebarSection> = [
   { title: "Main", items: [{ id: "dashboard", label: "Dashboard" },{ id: "categories", label: "Categories" },{ id: "events", label: "Events" },{ id: "stalls", label: "Stalls" },{ id: "bookings", label: "Bookings" }] },
-  { title: "Vendors", items: [{ id: "vendors", label: "Vendor Hub" },{ id: "approvals", label: "Approvals", badge: "12" }] },
+  { title: "Vendors", items: [{ id: "approvals", label: "Approvals", badge: "12" }] },
   { title: "Finance", items: [{ id: "payments", label: "Payments" },{ id: "reports", label: "Reports" }] },
   { title: "System", items: [{ id: "notifications", label: "Notifications" },{ id: "settings", label: "Settings" }] },
 ];
@@ -112,6 +114,12 @@ export function getPageHeaderOverview(page: PageId, role: UserRole): HeaderOverv
       description: "A central place to handle reservations, payment status, and assignment escalations.",
       actions: ["Export bookings", "Open payments"],
     },
+    "booking-create": {
+      eyebrow: "Swadeshi Mela control room",
+      title: "Create Booking On Behalf",
+      description: "Add booking details, vendor profile fields, and notes from the admin support desk.",
+      actions: ["Back to bookings", "Create booking"],
+    },
     vendors: {
       eyebrow: "Swadeshi Mela control room",
       title: "Vendor Dashboard & Application",
@@ -165,6 +173,7 @@ export function renderPage(page: PageId, setPage: SetPage, role: UserRole) {
     case "categories": return <CategoryManagementPage />;
     case "stalls": return <StallMapPage />;
     case "bookings": return <BookingOperationsPage setPage={setPage} />;
+    case "booking-create": return <BookingCreatePage setPage={setPage} />;
     case "vendors": return <VendorHubPage setPage={setPage} />;
     case "approvals": return <ApprovalsPage />;
     case "payments": return <PaymentsPage />;
