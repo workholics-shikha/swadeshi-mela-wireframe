@@ -1,9 +1,8 @@
-import { ActionList, Card, PageHero } from "./PageScaffold";
+import { ActionList, Card } from "./PageScaffold";
 
 export function SettingsPage() {
   return (
     <div className="space-y-6">
-      <PageHero title="Platform Settings" description="Administrative defaults for approvals, pricing behavior, and portal visibility." actions={["Save changes", "Reset defaults"]} />
       <div className="grid gap-6 xl:grid-cols-2">
         <Card title="Approval Rules" subtitle="Controls inspired by the event setup wireframe.">
           <ActionList actions={["Allow multiple stalls per vendor.","Auto-approve verified vendors after KYC validation.","Require deposit for premium zones before confirmation."]} />

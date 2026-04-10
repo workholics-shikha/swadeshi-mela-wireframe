@@ -1,9 +1,8 @@
-import { ActionList, Card, PageHero, SimpleTable } from "./PageScaffold";
+import { ActionList, Card, SimpleTable } from "./PageScaffold";
 
 export function NotificationsPage() {
   return (
     <div className="space-y-6">
-      <PageHero title="Notifications Center" description="Compose reminders, review escalations, and manage operational communications." actions={["Clear all", "Compose"]} />
       <div className="grid gap-6 xl:grid-cols-[1.4fr_0.95fr]">
         <SimpleTable title="Recent notifications" headers={["Type", "Recipient", "Message", "Status"]} rows={[
           ["Payment reminder", "Meena Crafts", "Final balance due in 3 days", "Sent"],

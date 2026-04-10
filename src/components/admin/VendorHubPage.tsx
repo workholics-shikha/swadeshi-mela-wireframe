@@ -1,10 +1,9 @@
-import { ActionList, Card, FormGrid, JumpButton, PageHero, StatsRow } from "./PageScaffold";
+import { ActionList, Card, FormGrid, JumpButton, StatsRow } from "./PageScaffold";
 import type { SetPage } from "./types";
 
 export function VendorHubPage({ setPage }: { setPage: SetPage }) {
   return (
     <div className="space-y-6">
-      <PageHero title="Vendor Dashboard & Application" description="Combines the vendor dashboard and application screen into one connected admin view." actions={["Open approvals", "View public directory"]} />
       <div className="grid gap-6 xl:grid-cols-2">
         <Card title="Vendor Dashboard Snapshot" subtitle="Performance and readiness for a typical vendor account.">
           <StatsRow stats={[["Allocated stalls","2"],["Amount paid","Rs 19,200"],["Documents","4 / 5"]]} />

@@ -1,9 +1,8 @@
-import { Card, InfoList, PageHero } from "./PageScaffold";
+import { Card, InfoList } from "./PageScaffold";
 
 export function StallMapPage() {
   return (
     <div className="space-y-6">
-      <PageHero title="Interactive Stall Allocation" description="Zone occupancy, availability, and quick assignment tools for the mela floor." actions={["All zones", "Assign stall"]} />
       <div className="grid gap-6 xl:grid-cols-[1.55fr_0.85fr]">
         <Card title="Zone A - Textile" subtitle="49 of 60 stalls booked.">
           <div className="mb-5 rounded-full bg-[var(--shell-bg)] p-1">

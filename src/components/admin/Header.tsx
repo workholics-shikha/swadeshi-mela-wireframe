@@ -1,19 +1,48 @@
 import { useNavigate } from "react-router-dom";
 
-type HeaderProps = { title: string; description: string };
+type HeaderProps = {
+  title: string;
+  description: string;
+  overview?: {
+    eyebrow?: string;
+    title?: string;
+    description?: string;
+    actions?: string[];
+  };
+};
 
-export function Header({ title, description }: HeaderProps) {
+export function Header({ title, description, overview }: HeaderProps) {
   const navigate = useNavigate();
+  const displayEyebrow = overview?.eyebrow ?? "Festival operations console";
+  const displayTitle = overview?.title ?? title;
+  const displayDescription = overview?.description ?? description;
+  const displayActions = overview?.actions ?? [];
+
   return (
-    <header className="px-3 pt-3 sm:px-6 sm:pt-6 lg:px-8">
+    <header className="px-3 pb-4 pt-3 sm:px-6 sm:pb-5 sm:pt-6 lg:px-8">
       <div className="bg-admin-panel border border-[color:var(--border-soft)] px-4 py-4 sm:rounded-[28px] sm:px-6 lg:px-8">
-        <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between lg:min-h-[96px]">
-          <div className="min-w-0">
-            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[var(--text-muted)]">Festival operations console</p>
-            <h1 className="mt-2 font-display text-2xl text-[var(--text-main)] sm:text-4xl">{title}</h1>
-            <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--text-soft)]">{description}</p>
+        <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+          <div className="min-w-0 flex-1">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[var(--text-muted)]">{displayEyebrow}</p>
+            <h1 className="mt-2 font-display text-[2rem] leading-none text-[var(--text-main)] sm:text-[2.6rem]">{displayTitle}</h1>
+            <p className="mt-3 max-w-3xl text-sm leading-6 text-[var(--text-soft)]">{displayDescription}</p>
           </div>
-          <button className="inline-flex w-full items-center justify-center rounded-full bg-[linear-gradient(135deg,hsl(var(--saffron)),hsl(var(--maroon)))] px-5 py-3 text-sm font-semibold text-white transition hover:brightness-95 sm:w-auto" onClick={() => navigate("/")} type="button">Back to site</button>
+          <div className="flex flex-wrap items-center gap-3 xl:justify-end">
+            {displayActions.map((action, index) => (
+              <button
+                className={`rounded-full px-4 py-2.5 text-sm font-semibold ${
+                  index === displayActions.length - 1
+                    ? "bg-[linear-gradient(135deg,hsl(var(--saffron)),hsl(var(--maroon)))] text-white"
+                    : "border border-[color:var(--border-soft)] bg-white/70 text-[var(--text-soft)]"
+                }`}
+                key={action}
+                type="button"
+              >
+                {action}
+              </button>
+            ))}
+            <button className="inline-flex items-center justify-center rounded-full bg-[linear-gradient(135deg,hsl(var(--saffron)),hsl(var(--maroon)))] px-5 py-3 text-sm font-semibold text-white transition hover:brightness-95" onClick={() => navigate("/")} type="button">Back to site</button>
+          </div>
         </div>
       </div>
     </header>

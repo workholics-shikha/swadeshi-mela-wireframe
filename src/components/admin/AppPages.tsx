@@ -1,7 +1,9 @@
 import { ApprovalsPage } from "./ApprovalsPage";
 import { BookingOperationsPage } from "./BookingOperationsPage";
+import { CategoryManagementPage } from "./CategoryManagementPage";
 import { DashboardPage } from "./DashboardPage";
 import { EventCreatePage } from "./EventCreatePage";
+import { EventListPage } from "./EventListPage";
 import { NotificationsPage } from "./NotificationsPage";
 import { PaymentsPage } from "./PaymentsPage";
 import { ReportsPage } from "./ReportsPage";
@@ -11,18 +13,21 @@ import { VendorHubPage } from "./VendorHubPage";
 import type { PageId, SetPage, UserRole } from "./types";
 
 type PageMeta = { title: string; description: string };
+type HeaderOverview = { eyebrow?: string; title?: string; description?: string; actions?: string[] };
 type SidebarItem = { id: PageId; label: string; badge?: string };
 type SidebarSection = { title: string; items: ReadonlyArray<SidebarItem> };
 type QuickAccessItem = { id: PageId; label: string };
 
 const roleAllowedPages: Record<UserRole, ReadonlyArray<PageId>> = {
-  Admin: ["dashboard","events","stalls","bookings","vendors","approvals","payments","reports","notifications","settings"],
+  Admin: ["dashboard","events","event-create","categories","stalls","bookings","vendors","approvals","payments","reports","notifications","settings"],
   Vendor: ["dashboard","bookings","vendors","payments","notifications","settings"],
 };
 
 export const pageMeta: Record<PageId, PageMeta> = {
   dashboard: { title: "Admin Dashboard", description: "Real-time oversight for stalls, vendors, payments, and daily operations." },
-  events: { title: "Create / Edit Event", description: "Configure mela details, event schedule, venue, and publishing workflow." },
+  events: { title: "Event Management", description: "Review existing mela events, statuses, and create new event records." },
+  "event-create": { title: "Create New Mela Event", description: "Configure mela details, event schedule, categories, and publishing workflow." },
+  categories: { title: "Category Management", description: "Manage event and stall categories, capacities, and category-wise availability." },
   stalls: { title: "Stalls & Booking", description: "Manage interactive stall allocation, occupancy, and zone-level availability." },
   bookings: { title: "Booking Operations", description: "Monitor reservation status, assignment queues, and booking support activity." },
   vendors: { title: "Vendor Hub", description: "Track vendor onboarding, applications, readiness, and account health." },
@@ -34,7 +39,7 @@ export const pageMeta: Record<PageId, PageMeta> = {
 };
 
 const adminSidebarSections: ReadonlyArray<SidebarSection> = [
-  { title: "Main", items: [{ id: "dashboard", label: "Dashboard" },{ id: "events", label: "Events" },{ id: "stalls", label: "Stalls" },{ id: "bookings", label: "Bookings" }] },
+  { title: "Main", items: [{ id: "dashboard", label: "Dashboard" },{ id: "categories", label: "Categories" },{ id: "events", label: "Events" },{ id: "stalls", label: "Stalls" },{ id: "bookings", label: "Bookings" }] },
   { title: "Vendors", items: [{ id: "vendors", label: "Vendor Hub" },{ id: "approvals", label: "Approvals", badge: "12" }] },
   { title: "Finance", items: [{ id: "payments", label: "Payments" },{ id: "reports", label: "Reports" }] },
   { title: "System", items: [{ id: "notifications", label: "Notifications" },{ id: "settings", label: "Settings" }] },
@@ -47,7 +52,7 @@ const vendorSidebarSections: ReadonlyArray<SidebarSection> = [
 ];
 
 const adminQuickAccess: ReadonlyArray<QuickAccessItem> = [
-  { id: "dashboard", label: "Dashboard" },{ id: "stalls", label: "Stalls" },{ id: "bookings", label: "Bookings" },{ id: "approvals", label: "Approvals" },{ id: "payments", label: "Payments" },
+  { id: "dashboard", label: "Dashboard" },{ id: "categories", label: "Categories" },{ id: "stalls", label: "Stalls" },{ id: "bookings", label: "Bookings" },{ id: "payments", label: "Payments" },
 ];
 
 const vendorQuickAccess: ReadonlyArray<QuickAccessItem> = [
@@ -59,6 +64,95 @@ export const roleNavigation: Record<UserRole, { sidebarSections: ReadonlyArray<S
   Vendor: { sidebarSections: vendorSidebarSections, quickAccessPages: vendorQuickAccess, defaultPage: "dashboard" },
 };
 
+export function getPageHeaderOverview(page: PageId, role: UserRole): HeaderOverview {
+  if (page === "dashboard") {
+    return role === "Admin"
+      ? {
+          eyebrow: "Swadeshi Mela control room",
+          title: "Executive Overview",
+          description: "A fast read on occupancy, revenue, approvals, and operational momentum across the mela.",
+          actions: ["View reports", "Manage vendors"],
+        }
+      : {
+          eyebrow: "Vendor command center",
+          title: "Business Snapshot",
+          description: "Track your stalls, application status, payments, and visibility before the mela opens.",
+          actions: ["View payments", "My bookings"],
+        };
+  }
+
+  const overviewByPage: Partial<Record<PageId, HeaderOverview>> = {
+    events: {
+      eyebrow: "Swadeshi Mela control room",
+      title: "Event Management",
+      description: "Review existing mela events, statuses, and create new event records.",
+      actions: ["Open draft event", "Create new event"],
+    },
+    "event-create": {
+      eyebrow: "Swadeshi Mela control room",
+      title: "Create New Mela Event",
+      description: "Basic event details, category allocation, and final review before publishing.",
+      actions: ["Save draft", "Continue setup"],
+    },
+    categories: {
+      eyebrow: "Swadeshi Mela control room",
+      title: "Category Management",
+      description: "Create and manage stall and event categories from one dedicated admin section.",
+      actions: ["Save categories", "Sync with events"],
+    },
+    stalls: {
+      eyebrow: "Swadeshi Mela control room",
+      title: "Interactive Stall Allocation",
+      description: "Zone occupancy, availability, and quick assignment tools for the mela floor.",
+      actions: ["All zones", "Assign stall"],
+    },
+    bookings: {
+      eyebrow: "Swadeshi Mela control room",
+      title: "Booking Operations",
+      description: "A central place to handle reservations, payment status, and assignment escalations.",
+      actions: ["Export bookings", "Open payments"],
+    },
+    vendors: {
+      eyebrow: "Swadeshi Mela control room",
+      title: "Vendor Dashboard & Application",
+      description: "Combines the vendor dashboard and application screen into one connected admin view.",
+      actions: ["Open approvals", "View public directory"],
+    },
+    approvals: {
+      eyebrow: "Swadeshi Mela control room",
+      title: "Vendor Approval Desk",
+      description: "Review KYC, bank details, internal notes, and make final approval decisions.",
+      actions: ["Bulk approve", "Export list"],
+    },
+    payments: {
+      eyebrow: "Swadeshi Mela control room",
+      title: "Complete Payment - Stalls A-12 & A-13",
+      description: "Order summary, transaction history, and amount due for the connected vendor flow.",
+      actions: ["Download invoice", "Retry payment"],
+    },
+    reports: {
+      eyebrow: "Swadeshi Mela control room",
+      title: "Reports & Analytics",
+      description: "Revenue, occupancy, and season-over-season insights for event decision-making.",
+      actions: ["Export PDF", "Compare years"],
+    },
+    notifications: {
+      eyebrow: "Swadeshi Mela control room",
+      title: "Notifications Center",
+      description: "Compose reminders, review escalations, and manage operational communications.",
+      actions: ["Clear all", "Compose"],
+    },
+    settings: {
+      eyebrow: "Swadeshi Mela control room",
+      title: "Platform Settings",
+      description: "Administrative defaults for approvals, pricing behavior, and portal visibility.",
+      actions: ["Save changes", "Reset defaults"],
+    },
+  };
+
+  return overviewByPage[page] ?? {};
+}
+
 export function resolvePageForRole(page: PageId, role: UserRole): PageId {
   return roleAllowedPages[role].includes(page) ? page : roleNavigation[role].defaultPage;
 }
@@ -66,7 +160,9 @@ export function resolvePageForRole(page: PageId, role: UserRole): PageId {
 export function renderPage(page: PageId, setPage: SetPage, role: UserRole) {
   switch (page) {
     case "dashboard": return <DashboardPage userRole={role} />;
-    case "events": return <EventCreatePage />;
+    case "events": return <EventListPage setPage={setPage} />;
+    case "event-create": return <EventCreatePage setPage={setPage} />;
+    case "categories": return <CategoryManagementPage />;
     case "stalls": return <StallMapPage />;
     case "bookings": return <BookingOperationsPage setPage={setPage} />;
     case "vendors": return <VendorHubPage setPage={setPage} />;

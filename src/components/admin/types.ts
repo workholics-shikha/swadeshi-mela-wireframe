@@ -1,6 +1,8 @@
 export type PageId =
   | "dashboard"
   | "events"
+  | "event-create"
+  | "categories"
   | "stalls"
   | "bookings"
   | "vendors"

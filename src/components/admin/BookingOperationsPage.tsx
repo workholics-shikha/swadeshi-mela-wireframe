@@ -1,10 +1,9 @@
-import { Card, ActionList, JumpButton, PageHero, SimpleTable } from "./PageScaffold";
+import { Card, ActionList, JumpButton, SimpleTable } from "./PageScaffold";
 import type { SetPage } from "./types";
 
 export function BookingOperationsPage({ setPage }: { setPage: SetPage }) {
   return (
     <div className="space-y-6">
-      <PageHero title="Booking Operations" description="A central place to handle reservations, payment status, and assignment escalations." actions={["Export bookings", "Open payments"]} />
       <div className="grid gap-6 xl:grid-cols-[1.4fr_0.95fr]">
         <Card title="Today's Queue" subtitle="Priority actions for the booking desk.">
           <ActionList actions={[

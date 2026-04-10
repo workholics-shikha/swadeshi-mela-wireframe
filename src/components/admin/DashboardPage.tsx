@@ -1,4 +1,4 @@
-import { Card, ActionList, PageHero, SimpleTable, StatsRow } from "./PageScaffold";
+import { Card, ActionList, SimpleTable, StatsRow } from "./PageScaffold";
 import type { UserRole } from "./types";
 
 type DashboardPageProps = { userRole: UserRole };
@@ -39,11 +39,6 @@ export function DashboardPage({ userRole }: DashboardPageProps) {
   const isAdmin = userRole === "Admin";
   return (
     <div className="space-y-6">
-      <PageHero
-        title={isAdmin ? "Executive Overview" : "Business Snapshot"}
-        description={isAdmin ? "A fast read on occupancy, revenue, approvals, and operational momentum across the mela." : "Track your stalls, application status, payments, and visibility before the mela opens."}
-        actions={isAdmin ? ["View reports", "Manage vendors"] : ["View payments", "My bookings"]}
-      />
       <StatsRow stats={isAdmin ? adminStats : vendorStats} />
       <div className="grid gap-6 xl:grid-cols-[1.4fr_0.95fr]">
         <SimpleTable title="Recent Bookings" headers={["Booking ID", "Vendor", "Zone", "Amount", "Status"]} rows={adminBookings} />
