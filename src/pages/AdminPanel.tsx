@@ -15,22 +15,23 @@ const AdminPanel = () => {
   const activeMeta = pageMeta[resolvedPage];
 
   return (
-    <div className="min-h-screen bg-[var(--shell-bg)] text-[var(--text-main)]">
-      <div className="flex min-h-screen w-full flex-col lg:flex-row">
+    <div className="bg-festive-admin min-h-screen text-[var(--text-main)]">
+      <div className="mx-auto flex min-h-screen w-full max-w-[1680px] flex-col lg:flex-row">
         <Sidebar
           activeItem={resolvedPage}
           onSelect={(id) => setActivePage(resolvePageForRole(id as PageId, userRole))}
           role={userRole}
           sections={navigation.sidebarSections}
         />
-        <div className="flex min-h-screen min-w-0 flex-1 flex-col">
+        <div className="relative flex min-h-screen min-w-0 flex-1 flex-col overflow-hidden">
+          <div className="pointer-events-none absolute inset-x-0 top-0 h-40 bg-[linear-gradient(180deg,rgba(217,106,20,0.14),transparent)]" />
           <Header description={activeMeta.description} title={activeMeta.title} />
           <TopNavigation
             activeItem={resolvedPage}
             items={navigation.quickAccessPages}
             onSelect={(id) => setActivePage(resolvePageForRole(id as PageId, userRole))}
           />
-          <main className="flex-1 px-3 py-4 sm:px-5 sm:py-6 lg:px-8">
+          <main className="relative flex-1 px-3 py-4 sm:px-5 sm:py-6 lg:px-8">
             {renderPage(resolvedPage, (page) => setActivePage(resolvePageForRole(page, userRole)), userRole)}
           </main>
           <Footer pageLabel={activeMeta.title} />
