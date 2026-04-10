@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700;800&family=DM+Sans:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700;800&family=DM+Sans:wght@300;400;500;600;700&family=Manrope:wght@400;500;600;700;800&family=Cormorant+Garamond:wght@600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -63,6 +63,34 @@
     --shadow-elevated: 0 12px 40px -8px hsl(var(--maroon) / 0.12);
     --gradient-hero: linear-gradient(135deg, hsl(var(--saffron)), hsl(var(--maroon)));
     --gradient-festive: linear-gradient(135deg, hsl(var(--saffron) / 0.1), hsl(var(--green-india) / 0.1));
+
+    /* Vendor portal tokens */
+    --visitor-bg: #f7f5ff;
+    --visitor-panel: #ffffff;
+    --visitor-ink: #2b2e5b;
+    --visitor-soft: #6b72a1;
+    --visitor-muted: #a2abd4;
+    --visitor-border: #e5e2f8;
+    --visitor-brand: #4d96ff;
+    --visitor-brand-deep: #9d4edd;
+    --visitor-brand-soft: #4d96ff1a;
+    --visitor-accent: #ff6b6b;
+    --visitor-accent-soft: #ff6b6b1a;
+    --visitor-highlight: #ffd93d;
+    --visitor-highlight-soft: #ffd93d1f;
+    --visitor-purple: #9d4edd;
+
+    /* Admin panel tokens */
+    --shell-bg: #f4f8ff;
+    --panel: #ffffff;
+    --brand: #1479ff;
+    --brand-strong: #0f63d1;
+    --brand-soft: #1479ff1a;
+    --brand-accent: #b9d4ff;
+    --text-main: #193b68;
+    --text-soft: #5f7898;
+    --text-muted: #91a8c6;
+    --border-soft: #d9e5f3;
   }
 
   .dark {
