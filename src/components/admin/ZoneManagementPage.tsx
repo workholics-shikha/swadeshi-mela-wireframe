@@ -3,7 +3,7 @@ import { Edit3, Plus, Search, Trash2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 import { Card, SimpleTable } from "./PageScaffold";
-import { createZoneMaster, getZoneMaster, removeZoneMaster, updateZoneMaster, type ZoneMasterItem } from "@/lib/domainApi";
+import { createZone, getZones, removeZone, updateZone, type ZoneItem } from "@/lib/domainApi";
 
 type ZoneDraft = {
   id: string;
@@ -16,13 +16,13 @@ const defaultDraft: ZoneDraft = { id: "", zoneName: "", description: "", status:
 
 export function ZoneManagementPage() {
   const pageSize = 5;
-  const [zones, setZones] = useState<ZoneMasterItem[]>([]);
+  const [zones, setZones] = useState<ZoneItem[]>([]);
   const [query, setQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [draft, setDraft] = useState<ZoneDraft>(defaultDraft);
 
   async function load() {
-    const rows = await getZoneMaster();
+    const rows = await getZones();
     setZones(rows);
   }
 
@@ -44,7 +44,7 @@ export function ZoneManagementPage() {
   }, [filteredZones, safeCurrentPage]);
 
   const startCreate = () => setDraft(defaultDraft);
-  const startEdit = (zone: ZoneMasterItem) =>
+  const startEdit = (zone: ZoneItem) =>
     setDraft({
       id: zone._id,
       zoneName: zone.zoneName,
@@ -59,15 +59,15 @@ export function ZoneManagementPage() {
       description: draft.description.trim(),
       status: draft.status,
     };
-    if (!draft.id) await createZoneMaster(payload);
-    else await updateZoneMaster(draft.id, payload);
+    if (!draft.id) await createZone(payload);
+    else await updateZone(draft.id, payload);
     await load();
     startCreate();
   };
 
   const onDelete = async (id: string) => {
     if (!window.confirm("Are you sure you want to delete this zone?")) return;
-    await removeZoneMaster(id);
+    await removeZone(id);
     await load();
   };
 

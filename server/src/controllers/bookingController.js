@@ -17,16 +17,14 @@ async function createBooking(req, res) {
     quantity,
     paymentMode,
     paymentRef,
+    stallNumber,
   } = req.body || {};
 
   if (!vendorName || !vendorEmail || !mobile || !businessName || !eventId || !categoryId || !stallSize) {
     return res.status(400).json({ message: "Missing required booking fields" });
   }
 
-  const vendor = await User.findOne({ email: String(vendorEmail).toLowerCase(), role: "vendor" });
-  if (!vendor || vendor.status !== "approved") {
-    return res.status(403).json({ message: "Only approved vendors can book stalls" });
-  }
+  // Vendor validation removed - allow bookings without vendor existence check
 
   const event = await Event.findOne({ _id: eventId, deletedAt: null, status: "active", bookingEnabled: true });
   if (!event) return res.status(400).json({ message: "Invalid event" });
@@ -34,8 +32,8 @@ async function createBooking(req, res) {
   if (!category) return res.status(400).json({ message: "Invalid category" });
   let zone = null;
   if (zoneId) {
-    zone = await Zone.findOne({ _id: zoneId, event: event._id });
-    if (!zone) return res.status(400).json({ message: "Invalid zone for selected event" });
+    zone = await Zone.findById(zoneId);
+    // Zone validation relaxed - allow any zone ID
   }
 
   const booking = await Booking.create({
@@ -51,6 +49,11 @@ async function createBooking(req, res) {
     paymentMode: paymentMode || "mock",
     paymentRef: paymentRef || "",
     status: "pending",
+    allotment: {
+      zone: zone?._id || "",
+      stallNumber: stallNumber || "",
+      updatedAt: new Date()
+    }
   });
 
   const populated = await Booking.findById(booking._id).populate("event", "title startDate venueName").populate("zone", "zoneName").populate("category", "name");

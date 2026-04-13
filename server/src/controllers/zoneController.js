@@ -1,35 +1,48 @@
-const { createZone, deleteZone, listZones, updateZone } = require("../services/zoneService");
+const { ZoneMaster } = require("../models/ZoneMaster");
 
-async function getZones(req, res) {
-  const zones = await listZones(req.query.eventId);
+async function listZones(req, res) {
+  const { eventId } = req.query;
+  let query = {};
+  
+  if (eventId) {
+    query.event = eventId;
+  }
+  
+  const zones = await ZoneMaster.find(query).sort({ createdAt: -1 });
   return res.json(zones);
 }
 
-async function addZone(req, res) {
-  try {
-    const { event, zoneName, description, status } = req.body || {};
-    if (!event || !zoneName) return res.status(400).json({ message: "event and zoneName are required" });
-    const zone = await createZone({ event, zoneName, description: description || "", status: status || "active" });
-    return res.status(201).json(zone);
-  } catch (error) {
-    return res.status(400).json({ message: error.message || "Failed to create zone" });
-  }
+async function createZone(req, res) {
+  const { zoneName, description, status } = req.body || {};
+  if (!zoneName) return res.status(400).json({ message: "zoneName is required" });
+  const zone = await ZoneMaster.create({
+    zoneName: String(zoneName).trim(),
+    description: String(description || "").trim(),
+    status: status || "active",
+  });
+  return res.status(201).json(zone);
 }
 
-async function editZone(req, res) {
-  try {
-    const updated = await updateZone(req.params.id, req.body || {});
-    if (!updated) return res.status(404).json({ message: "Zone not found" });
-    return res.json(updated);
-  } catch (error) {
-    return res.status(400).json({ message: error.message || "Failed to update zone" });
-  }
+async function updateZone(req, res) {
+  const { id } = req.params;
+  const { zoneName, description, status } = req.body || {};
+  const zone = await ZoneMaster.findByIdAndUpdate(
+    id,
+    {
+      ...(zoneName ? { zoneName: String(zoneName).trim() } : {}),
+      ...(description !== undefined ? { description: String(description).trim() } : {}),
+      ...(status ? { status } : {}),
+    },
+    { returnDocument: "after", runValidators: true },
+  );
+  if (!zone) return res.status(404).json({ message: "Zone not found" });
+  return res.json(zone);
 }
 
-async function removeZone(req, res) {
-  const deleted = await deleteZone(req.params.id);
-  if (!deleted) return res.status(404).json({ message: "Zone not found" });
+async function deleteZone(req, res) {
+  const zone = await ZoneMaster.findByIdAndDelete(req.params.id);
+  if (!zone) return res.status(404).json({ message: "Zone not found" });
   return res.json({ message: "Zone deleted" });
 }
 
-module.exports = { getZones, addZone, editZone, removeZone };
+module.exports = { listZones, createZone, updateZone, deleteZone };

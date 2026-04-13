@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, InfoList } from "./PageScaffold";
 import type { SetPage } from "./types";
-import { createEvent, getCategories, getZoneMaster, type Category, type ZoneMasterItem } from "@/lib/domainApi";
+import { createEvent, getCategories, getZones, type Category, type ZoneItem } from "@/lib/domainApi";
 
 const eventSteps = [
   { label: "Basic Info", sub: "Title, category, venue, timing" },
@@ -21,7 +21,7 @@ const progressCopy = [
 export function EventCreatePage({ setPage }: { setPage: SetPage }) {
   const [eventCategories, setEventCategories] = useState<Category[]>([]);
   const [stallCategories, setStallCategories] = useState<Category[]>([]);
-  const [zones, setZones] = useState<ZoneMasterItem[]>([]);
+  const [zones, setZones] = useState<ZoneItem[]>([]);
   const [activeStep, setActiveStep] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitMessage, setSubmitMessage] = useState("");
@@ -68,7 +68,7 @@ export function EventCreatePage({ setPage }: { setPage: SetPage }) {
         setStallCategories([]);
       });
 
-    getZoneMaster()
+    getZones()
       .then((rows) => setZones(rows.filter((z) => z.status === "active")))
       .catch(() => setZones([]));
   }, []);

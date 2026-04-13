@@ -1,94 +1,10 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Card, InfoList } from "./PageScaffold";
+import { getEvents, getZones, type EventItem, type ZoneItem } from "@/lib/domainApi";
 
 type StallStatus = "Booked" | "Free" | "Pending";
 type StallView = { stall: string; status: StallStatus };
 type ZoneSummary = [string, string];
-type EventStallData = {
-  zoneTitle: string;
-  zoneSubtitle: string;
-  zoneProgressPercent: number;
-  stalls: StallView[];
-  zoneSummary: ZoneSummary[];
-};
-
-const eventOptions = [
-  { id: "2026-main", label: "Swadeshi Mela 2026 - Main Ground" },
-  { id: "2026-winter", label: "Swadeshi Mela 2026 - Winter Edition" },
-  { id: "2025", label: "Swadeshi Mela 2025 - City Expo" },
-] as const;
-
-const eventStallData: Record<(typeof eventOptions)[number]["id"], EventStallData> = {
-  "2026-main": {
-    zoneTitle: "Zone A - Textile",
-    zoneSubtitle: "49 of 60 stalls booked.",
-    zoneProgressPercent: 82,
-    stalls: [
-      { stall: "A-01", status: "Booked" },
-      { stall: "A-02", status: "Booked" },
-      { stall: "A-03", status: "Free" },
-      { stall: "A-04", status: "Booked" },
-      { stall: "A-05", status: "Booked" },
-      { stall: "A-06", status: "Pending" },
-      { stall: "A-07", status: "Booked" },
-      { stall: "A-08", status: "Booked" },
-      { stall: "A-09", status: "Free" },
-      { stall: "A-10", status: "Booked" },
-    ],
-    zoneSummary: [
-      ["Zone A - Textile", "49 / 60 booked"],
-      ["Zone B - Handicraft", "38 / 55 booked"],
-      ["Zone C - Food", "52 / 65 booked"],
-      ["Zone D - Electronics", "39 / 60 booked"],
-    ],
-  },
-  "2026-winter": {
-    zoneTitle: "Zone B - Handicraft",
-    zoneSubtitle: "42 of 50 stalls booked.",
-    zoneProgressPercent: 84,
-    stalls: [
-      { stall: "B-01", status: "Booked" },
-      { stall: "B-02", status: "Booked" },
-      { stall: "B-03", status: "Booked" },
-      { stall: "B-04", status: "Pending" },
-      { stall: "B-05", status: "Free" },
-      { stall: "B-06", status: "Booked" },
-      { stall: "B-07", status: "Booked" },
-      { stall: "B-08", status: "Free" },
-      { stall: "B-09", status: "Booked" },
-      { stall: "B-10", status: "Booked" },
-    ],
-    zoneSummary: [
-      ["Zone A - Textile", "35 / 45 booked"],
-      ["Zone B - Handicraft", "42 / 50 booked"],
-      ["Zone C - Food", "31 / 40 booked"],
-      ["Zone D - Electronics", "27 / 35 booked"],
-    ],
-  },
-  "2025": {
-    zoneTitle: "Zone C - Food",
-    zoneSubtitle: "56 of 70 stalls booked.",
-    zoneProgressPercent: 80,
-    stalls: [
-      { stall: "C-01", status: "Booked" },
-      { stall: "C-02", status: "Booked" },
-      { stall: "C-03", status: "Pending" },
-      { stall: "C-04", status: "Booked" },
-      { stall: "C-05", status: "Free" },
-      { stall: "C-06", status: "Booked" },
-      { stall: "C-07", status: "Booked" },
-      { stall: "C-08", status: "Booked" },
-      { stall: "C-09", status: "Free" },
-      { stall: "C-10", status: "Booked" },
-    ],
-    zoneSummary: [
-      ["Zone A - Textile", "44 / 58 booked"],
-      ["Zone B - Handicraft", "36 / 52 booked"],
-      ["Zone C - Food", "56 / 70 booked"],
-      ["Zone D - Electronics", "33 / 48 booked"],
-    ],
-  },
-};
 
 const statusClassMap: Record<StallStatus, string> = {
   Booked: "bg-emerald-100 text-emerald-700",
@@ -96,52 +12,240 @@ const statusClassMap: Record<StallStatus, string> = {
   Pending: "bg-amber-100 text-amber-700",
 };
 
-export function StallMapPage() {
-  const [selectedEventId, setSelectedEventId] = useState<(typeof eventOptions)[number]["id"]>(eventOptions[0].id);
-  const selectedEventData = eventStallData[selectedEventId];
-
-  function handleEventChange(eventId: (typeof eventOptions)[number]["id"]) {
-    setSelectedEventId(eventId);
+// Generate mock stalls for demonstration (in real app, this would come from API)
+function generateStalls(zoneName: string, count: number): StallView[] {
+  const stalls: StallView[] = [];
+  const prefix = zoneName.charAt(0).toUpperCase();
+  const statuses: StallStatus[] = ["Booked", "Free", "Pending"];
+  
+  for (let i = 1; i <= count; i++) {
+    // Mix different naming patterns for variety
+    const pattern = i % 3;
+    let stallName: string;
+    
+    if (pattern === 0) {
+      // Pattern: "A-1", "B-2", etc.
+      stallName = `${prefix}-${i}`;
+    } else if (pattern === 1) {
+      // Pattern: "Zone A", "Zone B", etc.
+      stallName = `Zone ${prefix}-${i}`;
+    } else {
+      // Pattern: "A-1", "A-2", etc. (simple)
+      stallName = `${prefix}-${i}`;
+    }
+    
+    // Random status with weighted probability (more booked than free/pending)
+    const rand = Math.random();
+    const status = rand < 0.6 ? "Booked" : rand < 0.85 ? "Free" : "Pending";
+    stalls.push({ stall: stallName, status });
   }
+  return stalls;
+}
+
+export function StallMapPage() {
+  const [events, setEvents] = useState<EventItem[]>([]);
+  const [zones, setZones] = useState<ZoneItem[]>([]);
+  const [selectedEventId, setSelectedEventId] = useState<string>("");
+  const [selectedZoneId, setSelectedZoneId] = useState<string>("");
+  const [loading, setLoading] = useState(false);
+  const [stalls, setStalls] = useState<StallView[]>([]);
+  const [zoneSummary, setZoneSummary] = useState<ZoneSummary[]>([]);
+
+  // Fetch events on mount
+  useEffect(() => {
+    getEvents()
+      .then((data) => {
+        setEvents(data);
+        if (data.length > 0) {
+          setSelectedEventId(data[0]._id);
+        }
+      })
+      .catch(() => setEvents([]));
+  }, []);
+
+  // Fetch zones when event changes
+  useEffect(() => {
+    if (!selectedEventId) {
+      setZones([]);
+      setSelectedZoneId("");
+      setStalls([]);
+      setZoneSummary([]);
+      return;
+    }
+
+    setLoading(true);
+    getZones(selectedEventId)
+      .then((data) => {
+        setZones(data);
+        if (data.length > 0) {
+          setSelectedZoneId(data[0]._id);
+        } else {
+          setSelectedZoneId("");
+          setStalls([]);
+          setZoneSummary([]);
+        }
+        setLoading(false);
+      })
+      .catch(() => {
+        setZones([]);
+        setSelectedZoneId("");
+        setStalls([]);
+        setZoneSummary([]);
+        setLoading(false);
+      });
+  }, [selectedEventId]);
+
+  // Load stalls when zone changes
+  useEffect(() => {
+    if (!selectedZoneId || !zones.length) {
+      setStalls([]);
+      return;
+    }
+
+    const zone = zones.find((z) => z._id === selectedZoneId);
+    if (zone) {
+      // Generate stalls based on zone (mock data - in real app, fetch from API)
+      const stallCount = 10 + Math.floor(Math.random() * 15); // 10-25 stalls
+      const generatedStalls = generateStalls(zone.zoneName, stallCount);
+      setStalls(generatedStalls);
+
+      // Calculate zone summary
+      const booked = generatedStalls.filter((s) => s.status === "Booked").length;
+      const summary: ZoneSummary[] = [[`${zone.zoneName}`, `${booked} / ${stallCount} booked`]];
+      
+      // Add other zones to summary
+      zones.forEach((z) => {
+        if (z._id !== selectedZoneId) {
+          const otherCount = 10 + Math.floor(Math.random() * 15);
+          const otherBooked = Math.floor(otherCount * 0.7);
+          summary.push([z.zoneName, `${otherBooked} / ${otherCount} booked`]);
+        }
+      });
+      
+      setZoneSummary(summary);
+    }
+  }, [selectedZoneId, zones]);
+
+  const selectedZone = zones.find((z) => z._id === selectedZoneId);
+  const bookedCount = stalls.filter((s) => s.status === "Booked").length;
+  const progressPercent = stalls.length > 0 ? Math.round((bookedCount / stalls.length) * 100) : 0;
 
   return (
     <div className="space-y-6">
+      {/* Event Selection */}
       <Card title="Event selection" subtitle="Choose an event to view its stall allocation details.">
-        <label className="mb-2 block text-sm font-semibold text-[var(--text-main)]" htmlFor="stall-event-select">
-          Event
-        </label>
-        <select
-          className="w-full rounded-[16px] border border-[color:var(--border-soft)] bg-white/80 px-4 py-3 text-sm text-[var(--text-main)] outline-none transition focus:border-[var(--brand)] focus:ring-2 focus:ring-[var(--brand-soft)]"
-          id="stall-event-select"
-          onChange={(event) => handleEventChange(event.target.value as (typeof eventOptions)[number]["id"])}
-          value={selectedEventId}
-        >
-          {eventOptions.map((eventOption) => (
-            <option key={eventOption.id} value={eventOption.id}>
-              {eventOption.label}
-            </option>
-          ))}
-        </select>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div>
+            <label className="mb-2 block text-sm font-semibold text-[var(--text-main)]" htmlFor="stall-event-select">
+              Event
+            </label>
+            <select
+              className="w-full rounded-[16px] border border-[color:var(--border-soft)] bg-white/80 px-4 py-3 text-sm text-[var(--text-main)] outline-none transition focus:border-[var(--brand)] focus:ring-2 focus:ring-[var(--brand-soft)]"
+              id="stall-event-select"
+              onChange={(e) => setSelectedEventId(e.target.value)}
+              value={selectedEventId}
+            >
+              <option value="">Select an event</option>
+              {events.map((event) => (
+                <option key={event._id} value={event._id}>
+                  {event.title}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Zone Selection */}
+          <div>
+            <label className="mb-2 block text-sm font-semibold text-[var(--text-main)]" htmlFor="stall-zone-select">
+              Zone
+            </label>
+            <select
+              className="w-full rounded-[16px] border border-[color:var(--border-soft)] bg-white/80 px-4 py-3 text-sm text-[var(--text-main)] outline-none transition focus:border-[var(--brand)] focus:ring-2 focus:ring-[var(--brand-soft)]"
+              id="stall-zone-select"
+              disabled={!zones.length || loading}
+              onChange={(e) => setSelectedZoneId(e.target.value)}
+              value={selectedZoneId}
+            >
+              <option value="">Select a zone</option>
+              {zones.map((zone) => (
+                <option key={zone._id} value={zone._id}>
+                  {zone.zoneName}
+                </option>
+              ))}
+            </select>
+            {loading && <p className="mt-2 text-sm text-[var(--text-soft)]">Loading zones...</p>}
+          </div>
+        </div>
       </Card>
 
+      {/* Stall Grid and Zone Summary */}
       <div className="grid gap-6 xl:grid-cols-[1.55fr_0.85fr]">
-        <Card title={selectedEventData.zoneTitle} subtitle={selectedEventData.zoneSubtitle}>
-          <div className="mb-5 rounded-full bg-[var(--shell-bg)] p-1">
-            <div className="h-3 rounded-full bg-[var(--brand)]" style={{ width: `${selectedEventData.zoneProgressPercent}%` }} />
-          </div>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
-            {selectedEventData.stalls.map(({ stall, status }) => (
-              <div className={`rounded-[20px] p-4 text-center ${statusClassMap[status]}`} key={stall}>
-                <p className="text-lg font-semibold">{stall}</p>
-                <p className="mt-1 text-xs uppercase tracking-[0.18em]">{status}</p>
+        {/* Stall Grid */}
+        <Card 
+          title={selectedZone ? selectedZone.zoneName : "Select a Zone"} 
+          subtitle={selectedZone ? `${bookedCount} of ${stalls.length} stalls booked.` : "Choose an event and zone to view stalls."}
+        >
+          {stalls.length > 0 ? (
+            <>
+              <div className="mb-5 rounded-full bg-[var(--shell-bg)] p-1">
+                <div 
+                  className="h-3 rounded-full bg-[var(--brand)]" 
+                  style={{ width: `${progressPercent}%` }} 
+                />
               </div>
-            ))}
-          </div>
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-5">
+                {stalls.map(({ stall, status }) => (
+                  <div 
+                    className={`rounded-[20px] p-4 text-center transition hover:scale-105 cursor-pointer ${statusClassMap[status]}`} 
+                    key={stall}
+                    title={`Stall ${stall}: ${status}`}
+                  >
+                    <p className="text-lg font-semibold">{stall}</p>
+                    <p className="mt-1 text-xs uppercase tracking-[0.18em]">{status}</p>
+                  </div>
+                ))}
+              </div>
+            </>
+          ) : (
+            <div className="flex items-center justify-center py-12 text-center">
+              <p className="text-sm text-[var(--text-soft)]">
+                {!selectedEventId 
+                  ? "Please select an event to view zones and stalls." 
+                  : !selectedZoneId 
+                    ? "Please select a zone to view its stalls." 
+                    : "No stalls available for this zone."}
+              </p>
+            </div>
+          )}
         </Card>
+
+        {/* Zone Summary */}
         <Card title="Zone Summary" subtitle="Current allocation by zone.">
-          <InfoList items={selectedEventData.zoneSummary} />
+          {zoneSummary.length > 0 ? (
+            <InfoList items={zoneSummary} />
+          ) : (
+            <p className="text-sm text-[var(--text-soft)]">Select an event to see zone summary.</p>
+          )}
         </Card>
       </div>
+
+      {/* Legend */}
+      <Card title="Legend" subtitle="Stall status indicators.">
+        <div className="flex flex-wrap gap-4">
+          <div className="flex items-center gap-2">
+            <div className="h-6 w-6 rounded bg-emerald-100" />
+            <span className="text-sm text-[var(--text-main)]">Booked</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="h-6 w-6 rounded bg-sky-100" />
+            <span className="text-sm text-[var(--text-main)]">Free</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="h-6 w-6 rounded bg-amber-100" />
+            <span className="text-sm text-[var(--text-main)]">Pending</span>
+          </div>
+        </div>
+      </Card>
     </div>
   );
 }

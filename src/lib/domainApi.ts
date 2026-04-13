@@ -5,13 +5,6 @@ const API_BASE = "http://localhost:5000";
 export type Category = { _id: string; name: string; type: "event" | "stall"; status: "active" | "inactive" };
 export type ZoneItem = {
   _id: string;
-  event: string | { _id: string; title: string };
-  zoneName: string;
-  description: string;
-  status: "active" | "inactive";
-};
-export type ZoneMasterItem = {
-  _id: string;
   zoneName: string;
   description: string;
   status: "active" | "inactive";
@@ -209,37 +202,17 @@ export async function getZones(eventId?: string): Promise<ZoneItem[]> {
   return res.json();
 }
 
-export async function createZone(data: { event: string; zoneName: string; description: string; status: "active" | "inactive" }) {
+export async function createZone(data: { zoneName: string; description: string; status: "active" | "inactive" }) {
   const res = await apiFetch("/api/zones", { method: "POST", body: JSON.stringify(data) });
   return res.json();
 }
 
-export async function updateZone(id: string, data: Partial<{ event: string; zoneName: string; description: string; status: "active" | "inactive" }>) {
+export async function updateZone(id: string, data: Partial<{ zoneName: string; description: string; status: "active" | "inactive" }>) {
   const res = await apiFetch(`/api/zones/${id}`, { method: "PUT", body: JSON.stringify(data) });
   return res.json();
 }
 
 export async function removeZone(id: string) {
   const res = await apiFetch(`/api/zones/${id}`, { method: "DELETE" });
-  return res.json();
-}
-
-export async function getZoneMaster(): Promise<ZoneMasterItem[]> {
-  const res = await fetch(`${API_BASE}/api/zone-master`);
-  return res.json();
-}
-
-export async function createZoneMaster(data: { zoneName: string; description: string; status: "active" | "inactive" }) {
-  const res = await apiFetch("/api/zone-master", { method: "POST", body: JSON.stringify(data) });
-  return res.json();
-}
-
-export async function updateZoneMaster(id: string, data: { zoneName: string; description: string; status: "active" | "inactive" }) {
-  const res = await apiFetch(`/api/zone-master/${id}`, { method: "PUT", body: JSON.stringify(data) });
-  return res.json();
-}
-
-export async function removeZoneMaster(id: string) {
-  const res = await apiFetch(`/api/zone-master/${id}`, { method: "DELETE" });
   return res.json();
 }

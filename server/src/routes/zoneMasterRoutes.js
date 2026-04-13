@@ -1,8 +1,8 @@
 const express = require("express");
 const { authRequired, requireRole } = require("../middleware/auth");
-const { listZones, createZone, updateZone, deleteZone } = require("../controllers/zoneMasterController");
+const { listZones, createZone, updateZone, deleteZone } = require("../controllers/zoneController");
 
-function createZoneMasterRouter({ jwtSecret }) {
+function createZoneRouter({ jwtSecret }) {
   const router = express.Router();
   router.get("/", listZones);
   router.post("/", authRequired({ jwtSecret }), requireRole(["admin"]), createZone);
@@ -11,4 +11,4 @@ function createZoneMasterRouter({ jwtSecret }) {
   return router;
 }
 
-module.exports = { createZoneMasterRouter };
+module.exports = { createZoneRouter };

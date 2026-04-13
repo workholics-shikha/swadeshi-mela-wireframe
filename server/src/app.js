@@ -8,8 +8,7 @@ const { createCategoryRouter } = require("./routes/categoryRoutes");
 const { createEventRouter } = require("./routes/eventRoutes");
 const { createBookingRouter } = require("./routes/bookingRoutes");
 const { createVendorRouter } = require("./routes/vendorRoutes");
-const { createZoneRouter } = require("./routes/zoneRoutes");
-const { createZoneMasterRouter } = require("./routes/zoneMasterRoutes");
+const { createZoneRouter } = require("./routes/zoneMasterRoutes");
 
 function createApp({ jwtSecret, jwtExpiresIn }) {
   const app = express();
@@ -29,7 +28,6 @@ function createApp({ jwtSecret, jwtExpiresIn }) {
   app.use("/api/bookings", createBookingRouter({ jwtSecret }));
   app.use("/api/vendors", createVendorRouter({ jwtSecret }));
   app.use("/api/zones", createZoneRouter({ jwtSecret }));
-  app.use("/api/zone-master", createZoneMasterRouter({ jwtSecret }));
 
   // 404
   app.use((req, res) => res.status(404).json({ message: "Not found" }));
