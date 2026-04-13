@@ -1,59 +1,55 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Check, ChevronLeft, ChevronRight, CircleDot, Plus, Sparkles, Trash2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Card, FormGrid, InfoList, TextArea } from "./PageScaffold";
+import { Card, InfoList } from "./PageScaffold";
 import type { SetPage } from "./types";
+import { createEvent, getCategories, getZoneMaster, type Category, type ZoneMasterItem } from "@/lib/domainApi";
 
 const eventSteps = [
-  { label: "Basic Info", sub: "Name, dates, venue" },
-  { label: "Categories", sub: "Select category and stall count" },
-  { label: "Review", sub: "Check layout, categories, and publish" },
-] as const;
-
-const basicInfoFields: [string, string][] = [
-  ["Event Name", "Swadeshi Mela - Indore 2026"],
-  ["Venue", "Indore Sports Complex, Pologround"],
-  ["City", "Indore"],
-  ["State", "Madhya Pradesh"],
-  ["Start Date", "2026-05-14"],
-  ["End Date", "2026-05-21"],
-  ["Public Registration", "2026-04-18"],
-  ["Organizer Contact", "info@swadeshimela.in"],
-];
-
-const layoutItems: [string, string][] = [
-  ["Zone A", "Handloom and textile brands | 72 stalls"],
-  ["Zone B", "Handicrafts and decor | 60 stalls"],
-  ["Zone C", "Food court and regional snacks | 54 stalls"],
-  ["Zone D", "Wellness, books, and specialty retail | 54 stalls"],
-];
-
-const categoryOptions = [
-  "Handloom and textile brands",
-  "Handicrafts and decor",
-  "Food court and regional snacks",
-  "Wellness and ayurveda",
-  "Books and stationery",
-  "Organic and village products",
+  { label: "Basic Info", sub: "Title, category, venue, timing" },
+  { label: "Media & Settings", sub: "Images and total stalls" },
+  { label: "Review", sub: "Check all event details" },
 ] as const;
 
 const progressCopy = [
-  "Capture the core mela details and publishing information for the event.",
-  "Create category-wise allocation by selecting category names and entering stalls available.",
-  "Review the stall layout and category setup before publishing the mela event.",
+  "Capture event title, category, location and timing details.",
+  "Upload event media and configure total stalls.",
+  "Review all entered values before publishing.",
 ];
 
-const publishingNotes =
-  "Publishing this mela event will make the listing available for registrations and use the configured category-wise stall allocation for vendor onboarding.";
-
 export function EventCreatePage({ setPage }: { setPage: SetPage }) {
+  const [eventCategories, setEventCategories] = useState<Category[]>([]);
+  const [stallCategories, setStallCategories] = useState<Category[]>([]);
+  const [zones, setZones] = useState<ZoneMasterItem[]>([]);
   const [activeStep, setActiveStep] = useState(0);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitMessage, setSubmitMessage] = useState("");
   const [categoryRows, setCategoryRows] = useState([
-    { id: 1, category: "Handloom and textile brands", stalls: "72" },
-    { id: 2, category: "Handicrafts and decor", stalls: "60" },
-    { id: 3, category: "Food court and regional snacks", stalls: "54" },
+    { id: 1, category: "", zoneId: "", stalls: "0" },
   ]);
+  const [form, setForm] = useState({
+    // Existing fields (kept)
+    eventName: "",
+    venue: "",
+    city: "",
+    state: "",
+    startDate: "",
+    endDate: "",
+    publicRegistration: "",
+    organizerContact: "",
+    contactEmail: "",
+    eventDescription: "",
+    // Newly added fields
+    eventCategory: "",
+    openingTime: "",
+    closingTime: "",
+    fullAddress: "",
+    pincode: "",
+    bannerImage: null as File | null,
+    galleryImages: [] as File[],
+    totalStalls: "",
+  });
 
   const isFirstStep = activeStep === 0;
   const isLastStep = activeStep === eventSteps.length - 1;
@@ -61,23 +57,80 @@ export function EventCreatePage({ setPage }: { setPage: SetPage }) {
   const goNext = () => setActiveStep((current) => Math.min(current + 1, eventSteps.length - 1));
   const goBack = () => setActiveStep((current) => Math.max(current - 1, 0));
 
+  useEffect(() => {
+    getCategories()
+      .then((rows) => {
+        setEventCategories(rows.filter((c) => c.type === "event"));
+        setStallCategories(rows.filter((c) => c.type === "stall"));
+      })
+      .catch(() => {
+        setEventCategories([]);
+        setStallCategories([]);
+      });
+
+    getZoneMaster()
+      .then((rows) => setZones(rows.filter((z) => z.status === "active")))
+      .catch(() => setZones([]));
+  }, []);
+
+  const update = (field: keyof typeof form, value: string) => setForm((current) => ({ ...current, [field]: value }));
+  const stallCategoryOptions = stallCategories.map((c) => c.name);
   const totalCategoryStalls = categoryRows.reduce((sum, row) => sum + (Number(row.stalls) || 0), 0);
 
   const addCategoryRow = () => {
-    setCategoryRows((current) => [
-      ...current,
-      { id: Date.now(), category: categoryOptions[0], stalls: "" },
-    ]);
+    setCategoryRows((current) => [...current, { id: Date.now(), category: stallCategoryOptions[0] || "", zoneId: "", stalls: "" }]);
   };
 
-  const updateCategoryRow = (id: number, field: "category" | "stalls", value: string) => {
-    setCategoryRows((current) =>
-      current.map((row) => (row.id === id ? { ...row, [field]: value } : row)),
-    );
+  const updateCategoryRow = (id: number, field: "category" | "zoneId" | "stalls", value: string) => {
+    setCategoryRows((current) => current.map((row) => (row.id === id ? { ...row, [field]: value } : row)));
   };
 
   const removeCategoryRow = (id: number) => {
     setCategoryRows((current) => (current.length > 1 ? current.filter((row) => row.id !== id) : current));
+  };
+
+  const publishEvent = async () => {
+    setSubmitMessage("");
+    if (!form.eventName || !form.eventCategory || !form.eventDescription || !form.startDate || !form.endDate || !form.openingTime || !form.closingTime || !form.venue || !form.city || !form.state || !form.pincode) {
+      setSubmitMessage("Please fill all required event fields before publishing.");
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      await createEvent({
+        title: form.eventName,
+        category: form.eventCategory,
+        description: form.eventDescription,
+        startDate: form.startDate,
+        endDate: form.endDate,
+        openingTime: form.openingTime,
+        closingTime: form.closingTime,
+        venueName: form.venue,
+        fullAddress: form.fullAddress || form.venue,
+        city: form.city,
+        state: form.state,
+        pincode: form.pincode,
+        totalStalls: form.totalStalls || String(totalCategoryStalls || 0),
+        bookingEnabled: true,
+        status: "active",
+        bannerImage: form.bannerImage,
+        galleryImages: form.galleryImages,
+        categoryZoneMappings: categoryRows
+          .filter((row) => row.category.trim())
+          .map((row) => ({
+            categoryName: row.category,
+            zoneId: row.zoneId || "",
+            stalls: Number(row.stalls) || 0,
+          })),
+      });
+      setSubmitMessage("Event published successfully.");
+      setPage("events");
+    } catch (error) {
+      setSubmitMessage(error instanceof Error ? error.message : "Failed to publish event.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -152,64 +205,145 @@ export function EventCreatePage({ setPage }: { setPage: SetPage }) {
 
       {activeStep === 0 && (
         <Card title="Basic Event Details" subtitle="Enter the main information for the mela event.">
-          <FormGrid fields={basicInfoFields} />
-          <TextArea
-            label="Event Description"
-            value="Annual Swadeshi Mela celebrating local artisans, food, textile, wellness, and handicraft vendors from across Madhya Pradesh."
-          />
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <p className="mb-2 text-sm font-semibold text-[var(--text-main)]">Event Title</p>
+              <Input className="h-12 rounded-[16px] border-[color:var(--border-soft)] bg-white text-[var(--text-main)]" value={form.eventName} onChange={(e) => update("eventName", e.target.value)} />
+            </div>
+            <div>
+              <p className="mb-2 text-sm font-semibold text-[var(--text-main)]">Venue</p>
+              <Input className="h-12 rounded-[16px] border-[color:var(--border-soft)] bg-white text-[var(--text-main)]" value={form.venue} onChange={(e) => update("venue", e.target.value)} />
+            </div>
+            <div>
+              <p className="mb-2 text-sm font-semibold text-[var(--text-main)]">City</p>
+              <Input className="h-12 rounded-[16px] border-[color:var(--border-soft)] bg-white text-[var(--text-main)]" value={form.city} onChange={(e) => update("city", e.target.value)} />
+            </div>
+            <div>
+              <p className="mb-2 text-sm font-semibold text-[var(--text-main)]">State</p>
+              <Input className="h-12 rounded-[16px] border-[color:var(--border-soft)] bg-white text-[var(--text-main)]" value={form.state} onChange={(e) => update("state", e.target.value)} />
+            </div>
+            <div>
+              <p className="mb-2 text-sm font-semibold text-[var(--text-main)]">Start Date</p>
+              <Input type="date" className="h-12 rounded-[16px] border-[color:var(--border-soft)] bg-white text-[var(--text-main)]" value={form.startDate} onChange={(e) => update("startDate", e.target.value)} />
+            </div>
+            <div>
+              <p className="mb-2 text-sm font-semibold text-[var(--text-main)]">End Date</p>
+              <Input type="date" className="h-12 rounded-[16px] border-[color:var(--border-soft)] bg-white text-[var(--text-main)]" value={form.endDate} onChange={(e) => update("endDate", e.target.value)} />
+            </div>
+            <div>
+              <p className="mb-2 text-sm font-semibold text-[var(--text-main)]">Public Registration</p>
+              <Input type="date" className="h-12 rounded-[16px] border-[color:var(--border-soft)] bg-white text-[var(--text-main)]" value={form.publicRegistration} onChange={(e) => update("publicRegistration", e.target.value)} />
+            </div>
+            <div>
+              <p className="mb-2 text-sm font-semibold text-[var(--text-main)]">Organizer Contact</p>
+              <Input className="h-12 rounded-[16px] border-[color:var(--border-soft)] bg-white text-[var(--text-main)]" value={form.organizerContact} onChange={(e) => update("organizerContact", e.target.value)} />
+            </div>
+            <div>
+              <p className="mb-2 text-sm font-semibold text-[var(--text-main)]">Contact Email</p>
+              <Input type="email" className="h-12 rounded-[16px] border-[color:var(--border-soft)] bg-white text-[var(--text-main)]" value={form.contactEmail} onChange={(e) => update("contactEmail", e.target.value)} />
+            </div>
+
+            <div>
+              <p className="mb-2 text-sm font-semibold text-[var(--text-main)]">Event Category</p>
+              <Select value={form.eventCategory} onValueChange={(value) => update("eventCategory", value)}>
+                <SelectTrigger className="h-12 rounded-[16px] border-[color:var(--border-soft)] bg-white text-[var(--text-main)]">
+                  <SelectValue placeholder="Select event category" />
+                </SelectTrigger>
+                <SelectContent>
+                  {eventCategories.map((category) => (
+                    <SelectItem key={category._id} value={category._id}>
+                      {category.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <p className="mb-2 text-sm font-semibold text-[var(--text-main)]">Opening Time</p>
+              <Input type="time" className="h-12 rounded-[16px] border-[color:var(--border-soft)] bg-white text-[var(--text-main)]" value={form.openingTime} onChange={(e) => update("openingTime", e.target.value)} />
+            </div>
+            <div>
+              <p className="mb-2 text-sm font-semibold text-[var(--text-main)]">Closing Time</p>
+              <Input type="time" className="h-12 rounded-[16px] border-[color:var(--border-soft)] bg-white text-[var(--text-main)]" value={form.closingTime} onChange={(e) => update("closingTime", e.target.value)} />
+            </div>
+            <div>
+              <p className="mb-2 text-sm font-semibold text-[var(--text-main)]">Pincode</p>
+              <Input className="h-12 rounded-[16px] border-[color:var(--border-soft)] bg-white text-[var(--text-main)]" value={form.pincode} onChange={(e) => update("pincode", e.target.value)} />
+            </div>
+          </div>
+          <div className="mt-4">
+            <p className="mb-2 text-sm font-semibold text-[var(--text-main)]">Event Description</p>
+            <textarea
+              className="min-h-24 w-full rounded-[16px] border border-[color:var(--border-soft)] bg-white px-4 py-3 text-sm text-[var(--text-main)] outline-none"
+              value={form.eventDescription}
+              onChange={(e) => update("eventDescription", e.target.value)}
+            />
+          </div>
         </Card>
       )}
 
       {activeStep === 1 && (
-        <div className="space-y-6">
-          <Card title="Category Section" subtitle="Select event categories and enter stalls available for each category.">
-            <div className="space-y-4">
-              {categoryRows.map((row, index) => (
-                <div className="rounded-[20px] border border-[color:var(--border-soft)] bg-white/70 p-4" key={row.id}>
-                  <div className="grid gap-4 lg:grid-cols-[1.4fr_0.8fr_auto] lg:items-end">
-                    <div>
-                      <p className="mb-2 text-sm font-semibold text-[var(--text-main)]">Category {index + 1}</p>
-                      <Select value={row.category} onValueChange={(value) => updateCategoryRow(row.id, "category", value)}>
-                        <SelectTrigger className="h-12 rounded-[16px] border-[color:var(--border-soft)] bg-white text-[var(--text-main)] focus:ring-[var(--brand)]">
-                          <SelectValue placeholder="Select category" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {categoryOptions.map((option) => (
-                            <SelectItem key={option} value={option}>
-                              {option}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div>
-                      <p className="mb-2 text-sm font-semibold text-[var(--text-main)]">Stalls available</p>
-                      <Input
-                        className="h-12 rounded-[16px] border-[color:var(--border-soft)] bg-white text-[var(--text-main)] focus-visible:ring-[var(--brand)]"
-                        min="0"
-                        onChange={(event) => updateCategoryRow(row.id, "stalls", event.target.value)}
-                        placeholder="Enter stall count"
-                        type="number"
-                        value={row.stalls}
-                      />
-                    </div>
-
-                    <button
-                      className="inline-flex h-12 items-center justify-center gap-2 rounded-[16px] border border-[color:var(--border-soft)] bg-white px-4 text-sm font-semibold text-[var(--text-soft)] transition hover:bg-[var(--brand-soft)] disabled:cursor-not-allowed disabled:opacity-50"
-                      disabled={categoryRows.length === 1}
-                      onClick={() => removeCategoryRow(row.id)}
-                      type="button"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                      Remove
-                    </button>
+        <Card title="Media & Settings" subtitle="Upload event media and configure stalls.">
+          <div className="space-y-4 mb-5">
+            {categoryRows.map((row, index) => (
+              <div className="rounded-[20px] border border-[color:var(--border-soft)] bg-white/70 p-4" key={row.id}>
+                <div className="grid gap-4 lg:grid-cols-[1.2fr_1.2fr_0.8fr_auto] lg:items-end">
+                  <div>
+                    <p className="mb-2 text-sm font-semibold text-[var(--text-main)]">Category {index + 1}</p>
+                    <Select value={row.category} onValueChange={(value) => updateCategoryRow(row.id, "category", value)}>
+                      <SelectTrigger className="h-12 rounded-[16px] border-[color:var(--border-soft)] bg-white text-[var(--text-main)]">
+                        <SelectValue placeholder="Select category" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {stallCategoryOptions.map((option) => (
+                          <SelectItem key={option} value={option}>
+                            {option}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
-                </div>
-              ))}
-            </div>
 
-            <div className="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-[20px] border border-[rgba(180,79,5,0.18)] bg-[linear-gradient(135deg,rgba(217,106,20,0.08),rgba(136,38,63,0.06))] p-4">
+                  <div>
+                    <p className="mb-2 text-sm font-semibold text-[var(--text-main)]">Stalls available</p>
+                    <Input
+                      className="h-12 rounded-[16px] border-[color:var(--border-soft)] bg-white text-[var(--text-main)]"
+                      min="0"
+                      onChange={(event) => updateCategoryRow(row.id, "stalls", event.target.value)}
+                      placeholder="Enter stall count"
+                      type="number"
+                      value={row.stalls}
+                    />
+                  </div>
+                  <div>
+                    <p className="mb-2 text-sm font-semibold text-[var(--text-main)]">Zone</p>
+                    <Select value={row.zoneId} onValueChange={(value) => updateCategoryRow(row.id, "zoneId", value)}>
+                      <SelectTrigger className="h-12 rounded-[16px] border-[color:var(--border-soft)] bg-white text-[var(--text-main)]">
+                        <SelectValue placeholder="Select zone" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {zones.map((zone) => (
+                          <SelectItem key={zone._id} value={zone._id}>
+                            {zone.zoneName}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <button
+                    className="inline-flex h-12 items-center justify-center gap-2 rounded-[16px] border border-[color:var(--border-soft)] bg-white px-4 text-sm font-semibold text-[var(--text-soft)] transition hover:bg-[var(--brand-soft)] disabled:cursor-not-allowed disabled:opacity-50"
+                    disabled={categoryRows.length === 1}
+                    onClick={() => removeCategoryRow(row.id)}
+                    type="button"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    Remove
+                  </button>
+                </div>
+              </div>
+            ))}
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-[20px] border border-[rgba(180,79,5,0.18)] bg-[linear-gradient(135deg,rgba(217,106,20,0.08),rgba(136,38,63,0.06))] p-4">
               <div>
                 <p className="text-sm font-semibold text-[var(--text-main)]">Total category stalls</p>
                 <p className="mt-1 text-sm text-[var(--text-soft)]">{totalCategoryStalls} stalls configured from the selected categories.</p>
@@ -223,24 +357,55 @@ export function EventCreatePage({ setPage }: { setPage: SetPage }) {
                 Add category
               </button>
             </div>
-          </Card>
-        </div>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <p className="mb-2 text-sm font-semibold text-[var(--text-main)]">Banner Image Upload</p>
+              <Input type="file" accept="image/*" className="h-12 rounded-[16px] border-[color:var(--border-soft)] bg-white text-[var(--text-main)]" onChange={(e) => setForm((current) => ({ ...current, bannerImage: e.target.files?.[0] || null }))} />
+            </div>
+            <div>
+              <p className="mb-2 text-sm font-semibold text-[var(--text-main)]">Gallery Images Upload (multiple)</p>
+              <Input type="file" multiple accept="image/*" className="h-12 rounded-[16px] border-[color:var(--border-soft)] bg-white text-[var(--text-main)]" onChange={(e) => setForm((current) => ({ ...current, galleryImages: Array.from(e.target.files || []) }))} />
+            </div>
+            <div>
+              <p className="mb-2 text-sm font-semibold text-[var(--text-main)]">Total Stalls</p>
+              <Input type="number" min="0" className="h-12 rounded-[16px] border-[color:var(--border-soft)] bg-white text-[var(--text-main)]" value={form.totalStalls} onChange={(e) => update("totalStalls", e.target.value)} />
+            </div>
+          </div>
+        </Card>
       )}
 
       {activeStep === 2 && (
         <div className="grid gap-6 xl:grid-cols-[1.2fr_1fr]">
-          <Card title="Review Categories" subtitle="Confirm the category-wise stall allocation before publishing.">
+          <Card title="Review Event" subtitle="Confirm event data before publish.">
             <InfoList
-              items={categoryRows.map((row) => [
-                row.category,
-                `${row.stalls || "0"} stalls`,
-              ])}
+              items={[
+                ["Event Title", form.eventName || "-"],
+                ["Event Category", eventCategories.find((c) => c._id === form.eventCategory)?.name || "-"],
+                ["Venue", form.venue || "-"],
+                ["City", form.city || "-"],
+                ["State", form.state || "-"],
+                ["Start Date", form.startDate || "-"],
+                ["End Date", form.endDate || "-"],
+                ["Opening - Closing", form.openingTime && form.closingTime ? `${form.openingTime} - ${form.closingTime}` : "-"],
+                ["Full Address", form.fullAddress || "-"],
+                ["Pincode", form.pincode || "-"],
+                ["Public Registration", form.publicRegistration || "-"],
+                ["Organizer Contact", form.organizerContact || "-"],
+                ["Contact Email", form.contactEmail || "-"],
+                ["Banner", form.bannerImage ? form.bannerImage.name : "Not selected"],
+                ["Gallery Images", form.galleryImages.length ? `${form.galleryImages.length} file(s)` : "Not selected"],
+                ["Total Stalls", form.totalStalls || "0"],
+                ["Category Rows", String(categoryRows.length)],
+                ["Category Stall Total", String(totalCategoryStalls)],
+                ["Zone Mapping", `${categoryRows.filter((row) => row.zoneId).length} row(s) mapped`],
+              ]}
             />
-            <TextArea label="Publishing Notes" value={publishingNotes} />
+            {submitMessage ? <p className="mt-3 text-sm font-semibold text-[var(--text-soft)]">{submitMessage}</p> : null}
           </Card>
 
-          <Card title="Stall Layout Review" subtitle="Review the final stall layout summary as part of the publishing step.">
-            <InfoList items={layoutItems} />
+          <Card title="Ready to Publish" subtitle="All requested fields are present in this form.">
+            <InfoList items={[["Form Mode", "Event Create"], ["Design", "Unchanged"], ["Validation", "Required fields can be enforced on submit"]]} />
           </Card>
         </div>
       )}
@@ -262,10 +427,11 @@ export function EventCreatePage({ setPage }: { setPage: SetPage }) {
           </button>
           <button
             className="inline-flex items-center gap-2 rounded-full bg-[linear-gradient(135deg,hsl(var(--saffron)),hsl(var(--maroon)))] px-5 py-2.5 text-sm font-semibold text-white"
-            onClick={goNext}
+            onClick={isLastStep ? publishEvent : goNext}
             type="button"
+            disabled={isSubmitting}
           >
-            {isLastStep ? "Publish mela event" : "Next step"}
+            {isLastStep ? (isSubmitting ? "Publishing..." : "Publish mela event") : "Next step"}
             {!isLastStep && <ChevronRight className="h-4 w-4" />}
           </button>
         </div>

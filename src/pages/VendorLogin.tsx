@@ -1,15 +1,42 @@
-import { FormEvent } from "react";
-import { useNavigate } from "react-router-dom";
+import { FormEvent, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { loginWithEmailPassword } from "@/lib/auth";
 
 const inputClassName =
   "w-full rounded-2xl border border-[hsl(var(--border))] bg-white px-4 py-3 text-sm text-[hsl(var(--foreground))] outline-none transition focus:border-[hsl(var(--primary))] focus:ring-4 focus:ring-[hsl(var(--primary)/0.15)]";
 
 const VendorLogin = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    navigate("/admin");
+    setError(null);
+    setIsSubmitting(true);
+
+    try {
+      const user = await loginWithEmailPassword(email, password);
+      const requested = searchParams.get("redirect");
+
+      if (requested === "admin" && user.role !== "admin") {
+        setError("Only admin users can access the Admin Dashboard.");
+        return;
+      }
+
+      if (user.role === "admin") {
+        navigate("/admin", { replace: true });
+      } else {
+        navigate("/vendor/dashboard", { replace: true });
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to login right now");
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   return (
@@ -29,7 +56,7 @@ const VendorLogin = () => {
               </div>
               <div>
                 <p className="text-lg font-extrabold text-[hsl(var(--foreground))]">Swadeshi Mela</p>
-                <p className="text-sm text-[hsl(var(--muted-foreground))]">Vendor sign in</p>
+                <p className="text-sm text-[hsl(var(--muted-foreground))]">Admin & Vendor sign in</p>
               </div>
             </div>
             <button
@@ -43,29 +70,46 @@ const VendorLogin = () => {
 
           <div className="mt-8">
             <p className="text-xs font-extrabold uppercase tracking-[0.3em] text-[hsl(var(--primary))]">
-              Vendor portal
+              Common auth
             </p>
             <h1 className="mt-3 font-display text-4xl leading-tight text-[hsl(var(--foreground))] sm:text-5xl">
               Sign in to continue
             </h1>
             <p className="mt-4 max-w-lg text-sm leading-7 text-[hsl(var(--muted-foreground))] sm:text-base">
-              Use your approved vendor account to review updates, registration progress, and next steps for the mela.
+              Sign in with your registered email and password. Admin users are routed to Admin Dashboard, and vendors to Vendor Dashboard.
             </p>
           </div>
 
           <form className="mt-8 space-y-5" onSubmit={handleSubmit}>
             <div>
               <label className="mb-2 block text-sm font-semibold text-[hsl(var(--foreground))]" htmlFor="vendorEmail">
-                Business email
+                Email
               </label>
-              <input className={inputClassName} defaultValue="vendor@swadeshimela.in" id="vendorEmail" placeholder="business@example.com" type="email" />
+              <input
+                className={inputClassName}
+                id="vendorEmail"
+                placeholder="you@example.com"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
             </div>
             <div>
               <label className="mb-2 block text-sm font-semibold text-[hsl(var(--foreground))]" htmlFor="vendorPassword">
                 Password
               </label>
-              <input className={inputClassName} defaultValue="password123" id="vendorPassword" placeholder="Enter your password" type="password" />
+              <input
+                className={inputClassName}
+                id="vendorPassword"
+                placeholder="Enter your password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
             </div>
+            {error ? <p className="text-sm font-semibold text-red-600">{error}</p> : null}
             <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
               <label className="flex items-center gap-2 text-[hsl(var(--muted-foreground))]">
                 <input className="accent-[hsl(var(--primary))]" defaultChecked type="checkbox" />
@@ -76,8 +120,9 @@ const VendorLogin = () => {
             <button
               className="w-full rounded-2xl bg-[linear-gradient(135deg,hsl(var(--saffron))_0%,hsl(var(--maroon))_100%)] px-4 py-3 text-sm font-extrabold text-white shadow-[0_18px_34px_hsl(var(--maroon)/0.2)] transition hover:-translate-y-0.5 hover:shadow-[0_24px_40px_hsl(var(--maroon)/0.26)]"
               type="submit"
+              disabled={isSubmitting}
             >
-              Sign in to vendor portal
+              {isSubmitting ? "Signing in..." : "Sign in"}
             </button>
           </form>
  

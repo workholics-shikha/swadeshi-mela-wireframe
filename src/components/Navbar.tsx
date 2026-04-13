@@ -37,13 +37,13 @@ const Navbar = () => {
             </a>
           ))}
           <Link
-            to="/vendor/login"
+            to="/login"
             className="px-4 py-2.5 rounded-lg border border-border text-sm font-semibold text-foreground hover:bg-muted transition-colors"
           >
             Vendor Login
           </Link>
           <Link
-            to="/admin"
+            to="/login?redirect=admin"
             className="px-4 py-2.5 rounded-lg bg-secondary text-secondary-foreground font-semibold text-sm hover:opacity-90 transition-opacity"
           >
             Admin Panel
@@ -81,14 +81,14 @@ const Navbar = () => {
               </a>
             ))}
             <Link
-              to="/vendor/login"
+              to="/login"
               className="text-sm font-medium text-muted-foreground hover:text-primary py-2"
               onClick={() => setOpen(false)}
             >
               Vendor Login
             </Link>
             <Link
-              to="/admin"
+              to="/login?redirect=admin"
               className="text-sm font-medium text-muted-foreground hover:text-primary py-2"
               onClick={() => setOpen(false)}
             >

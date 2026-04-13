@@ -4,6 +4,8 @@ import { BookingOperationsPage } from "./BookingOperationsPage";
 import { CategoryManagementPage } from "./CategoryManagementPage";
 import { DashboardPage } from "./DashboardPage";
 import { EventCreatePage } from "./EventCreatePage";
+import { EventDetailsPage } from "./EventDetailsPage";
+import { EventEditPage } from "./EventEditPage";
 import { EventListPage } from "./EventListPage";
 import { NotificationsPage } from "./NotificationsPage";
 import { PaymentsPage } from "./PaymentsPage";
@@ -11,6 +13,7 @@ import { ReportsPage } from "./ReportsPage";
 import { SettingsPage } from "./SettingsPage";
 import { StallMapPage } from "./StallMapPage";
 import { VendorHubPage } from "./VendorHubPage";
+import { ZoneManagementPage } from "./ZoneManagementPage";
 import type { PageId, SetPage, UserRole } from "./types";
 
 type PageMeta = { title: string; description: string };
@@ -20,7 +23,7 @@ type SidebarSection = { title: string; items: ReadonlyArray<SidebarItem> };
 type QuickAccessItem = { id: PageId; label: string };
 
 const roleAllowedPages: Record<UserRole, ReadonlyArray<PageId>> = {
-  Admin: ["dashboard","events","event-create","categories","stalls","bookings","booking-create","vendors","approvals","payments","reports","notifications","settings"],
+  Admin: ["dashboard","events","event-create","event-details","event-edit","categories","zones","stalls","bookings","booking-create","vendors","approvals","payments","reports","notifications","settings"],
   Vendor: ["dashboard","bookings","vendors","payments","notifications","settings"],
 };
 
@@ -28,7 +31,10 @@ export const pageMeta: Record<PageId, PageMeta> = {
   dashboard: { title: "Admin Dashboard", description: "Real-time oversight for stalls, vendors, payments, and daily operations." },
   events: { title: "Event Management", description: "Review existing mela events, statuses, and create new event records." },
   "event-create": { title: "Create New Mela Event", description: "Configure mela details, event schedule, categories, and publishing workflow." },
+  "event-details": { title: "Event Details", description: "Inspect complete event metadata, timing, venue, and status." },
+  "event-edit": { title: "Edit Event", description: "Modify an existing event and save changes to the system." },
   categories: { title: "Category Management", description: "Manage event and stall categories, capacities, and category-wise availability." },
+  zones: { title: "Zone Management", description: "Manage reusable zone master records with status and descriptions." },
   stalls: { title: "Stalls & Booking", description: "Manage interactive stall allocation, occupancy, and zone-level availability." },
   bookings: { title: "Booking Operations", description: "Monitor reservation status, assignment queues, and booking support activity." },
   "booking-create": { title: "Create Booking", description: "Create a booking on behalf of vendor and capture booking plus vendor details." },
@@ -41,7 +47,7 @@ export const pageMeta: Record<PageId, PageMeta> = {
 };
 
 const adminSidebarSections: ReadonlyArray<SidebarSection> = [
-  { title: "Main", items: [{ id: "dashboard", label: "Dashboard" },{ id: "categories", label: "Categories" },{ id: "events", label: "Events" },{ id: "stalls", label: "Stalls" },{ id: "bookings", label: "Bookings" }] },
+  { title: "Main", items: [{ id: "dashboard", label: "Dashboard" },{ id: "categories", label: "Categories" },{ id: "zones", label: "Zones" },{ id: "events", label: "Events" },{ id: "stalls", label: "Stalls" },{ id: "bookings", label: "Bookings" }] },
   { title: "Vendors", items: [{ id: "approvals", label: "Approvals", badge: "12" }] },
   { title: "Finance", items: [{ id: "payments", label: "Payments" },{ id: "reports", label: "Reports" }] },
   { title: "System", items: [{ id: "notifications", label: "Notifications" },{ id: "settings", label: "Settings" }] },
@@ -54,7 +60,7 @@ const vendorSidebarSections: ReadonlyArray<SidebarSection> = [
 ];
 
 const adminQuickAccess: ReadonlyArray<QuickAccessItem> = [
-  { id: "dashboard", label: "Dashboard" },{ id: "categories", label: "Categories" },{ id: "stalls", label: "Stalls" },{ id: "bookings", label: "Bookings" },{ id: "payments", label: "Payments" },
+  { id: "dashboard", label: "Dashboard" },{ id: "categories", label: "Categories" },{ id: "zones", label: "Zones" },{ id: "stalls", label: "Stalls" },{ id: "bookings", label: "Bookings" },{ id: "payments", label: "Payments" },
 ];
 
 const vendorQuickAccess: ReadonlyArray<QuickAccessItem> = [
@@ -96,11 +102,29 @@ export function getPageHeaderOverview(page: PageId, role: UserRole): HeaderOverv
       description: "Basic event details, category allocation, and final review before publishing.",
       actions: ["Save draft", "Continue setup"],
     },
+    "event-details": {
+      eyebrow: "Swadeshi Mela control room",
+      title: "Event Details",
+      description: "Review full event configuration including timing, venue and operational settings.",
+      actions: ["Back to events", "Edit event"],
+    },
+    "event-edit": {
+      eyebrow: "Swadeshi Mela control room",
+      title: "Edit Event",
+      description: "Update event metadata and operational settings while keeping existing structure.",
+      actions: ["Discard changes", "Save changes"],
+    },
     categories: {
       eyebrow: "Swadeshi Mela control room",
       title: "Category Management",
       description: "Create and manage stall and event categories from one dedicated admin section.",
       actions: ["Save categories", "Sync with events"],
+    },
+    zones: {
+      eyebrow: "Swadeshi Mela control room",
+      title: "Zone Management",
+      description: "Create and maintain zone masters for consistent operational planning.",
+      actions: ["Create zone", "Export zones"],
     },
     stalls: {
       eyebrow: "Swadeshi Mela control room",
@@ -170,7 +194,10 @@ export function renderPage(page: PageId, setPage: SetPage, role: UserRole) {
     case "dashboard": return <DashboardPage userRole={role} />;
     case "events": return <EventListPage setPage={setPage} />;
     case "event-create": return <EventCreatePage setPage={setPage} />;
+    case "event-details": return <EventDetailsPage setPage={setPage} />;
+    case "event-edit": return <EventEditPage setPage={setPage} />;
     case "categories": return <CategoryManagementPage />;
+    case "zones": return <ZoneManagementPage />;
     case "stalls": return <StallMapPage />;
     case "bookings": return <BookingOperationsPage setPage={setPage} />;
     case "booking-create": return <BookingCreatePage setPage={setPage} />;

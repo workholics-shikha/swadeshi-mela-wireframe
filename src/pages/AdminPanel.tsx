@@ -5,8 +5,11 @@ import { Sidebar } from "@/components/admin/Sidebar";
 import { getPageHeaderOverview, pageMeta, resolvePageForRole, renderPage, roleNavigation } from "@/components/admin/AppPages";
 import type { PageId, UserRole } from "@/components/admin/types";
 
-const AdminPanel = () => {
-  const [userRole] = useState<UserRole>("Admin");
+type AdminPanelProps = {
+  userRole: UserRole;
+};
+
+const AdminPanel = ({ userRole }: AdminPanelProps) => {
   const [activePage, setActivePage] = useState<PageId>("dashboard");
 
   const navigation = roleNavigation[userRole];
@@ -14,6 +17,10 @@ const AdminPanel = () => {
   const activeSidebarItem: PageId =
     resolvedPage === "event-create"
       ? "events"
+      : resolvedPage === "event-details"
+        ? "events"
+        : resolvedPage === "event-edit"
+          ? "events"
       : resolvedPage === "booking-create"
         ? "bookings"
         : resolvedPage;

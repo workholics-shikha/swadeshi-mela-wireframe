@@ -1,30 +1,59 @@
-import { useState } from "react";
-import { Check, ArrowRight, ArrowLeft, Upload } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Check, ArrowRight, ArrowLeft } from "lucide-react";
+import { createBooking, getCategories, getEvents, getZones, type Category, type EventItem, type ZoneItem } from "@/lib/domainApi";
 
-const steps = ["OTP Verification", "Business Details", "Stall Selection", "Payment", "Receipt Upload", "Review & Submit"];
-
-const stallCategories = [
-  "Handicrafts & Art", "Textiles & Clothing", "Food & Beverages",
-  "Organic & Ayurveda", "Jewelry & Accessories", "Electronics & Startups",
-];
-
+const steps = ["OTP Verification", "Business Details", "Stall Selection", "Payment"];
 const stallSizes = ["6×6 ft", "9×9 ft", "12×12 ft"];
-const states = ["Delhi", "Maharashtra", "Gujarat", "Rajasthan", "Uttar Pradesh", "Tamil Nadu", "Karnataka", "West Bengal", "Other"];
-const eventOptions = [
-  "Swadeshi Mela 2026 - Main Ground",
-  "Swadeshi Mela 2026 - Winter Edition",
-  "Swadeshi Mela 2025 - City Expo",
-];
+const states = ["Madhya Pradesh", "Delhi", "Maharashtra", "Gujarat", "Rajasthan", "Uttar Pradesh", "Tamil Nadu", "Karnataka", "West Bengal", "Other"];
 
 const StallBookingForm = () => {
   const [step, setStep] = useState(0);
   const [otp, setOtp] = useState("");
   const [otpSent, setOtpSent] = useState(false);
+  const [events, setEvents] = useState<EventItem[]>([]);
+  const [zones, setZones] = useState<ZoneItem[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [message, setMessage] = useState("");
   const [form, setForm] = useState({
     name: "", email: "", mobile: "", businessName: "", gst: "", address: "", city: "",
-    state: "", pincode: "", selectedEvent: "", stallCategory: "", stallSize: "", quantity: "1",
-    bookingType: "Standard", paymentMode: "", transactionId: "", receipt: null as File | null,
+    state: "", pincode: "", selectedEvent: "", selectedZone: "", stallCategory: "", stallSize: "", quantity: "1",
+    paymentMode: "mock", transactionId: "",
   });
+
+  useEffect(() => {
+    getEvents().then(setEvents);
+    getCategories().then((rows) => setCategories(rows.filter((c) => c.type === "stall" && c.status === "active")));
+  }, []);
+
+  useEffect(() => {
+    if (!form.selectedEvent) {
+      setZones([]);
+      setForm((current) => ({ ...current, selectedZone: "", stallCategory: "" }));
+      return;
+    }
+    setForm((current) => ({ ...current, selectedZone: "", stallCategory: "" }));
+    getZones(form.selectedEvent).then((items) => setZones(items.filter((z) => z.status === "active")));
+  }, [form.selectedEvent]);
+
+  const filteredCategories = useMemo(() => {
+    if (!form.selectedEvent) return [];
+    const selectedEvent = events.find((event) => event._id === form.selectedEvent);
+    const mappedCategoryNames = new Set(
+      (selectedEvent?.categoryZoneMappings || [])
+        .map((row) => row.categoryName?.trim())
+        .filter((name): name is string => Boolean(name)),
+    );
+    if (!mappedCategoryNames.size) {
+      return categories;
+    }
+    return categories.filter((category) => mappedCategoryNames.has(category.name));
+  }, [categories, events, form.selectedEvent]);
+
+  useEffect(() => {
+    if (!form.stallCategory) return;
+    if (filteredCategories.some((category) => category._id === form.stallCategory)) return;
+    setForm((current) => ({ ...current, stallCategory: "" }));
+  }, [filteredCategories, form.stallCategory]);
 
   const update = (field: string, value: string | File | null) => setForm((f) => ({ ...f, [field]: value }));
   const next = () => setStep((s) => Math.min(s + 1, steps.length - 1));
@@ -82,7 +111,7 @@ const StallBookingForm = () => {
                     <input type="text" className={inputClass} placeholder="Enter 6-digit OTP" maxLength={6}
                       value={otp} onChange={(e) => setOtp(e.target.value)} />
                   </div>
-                  <button onClick={next} className="w-full py-3 rounded-lg bg-primary text-primary-foreground font-semibold">
+                  <button onClick={next} className="w-full py-3 rounded-lg bg-primary text-primary-foreground font-semibold" disabled={otp.length < 4}>
                     Verify & Continue
                   </button>
                 </>
@@ -102,7 +131,7 @@ const StallBookingForm = () => {
                 <div key={f.field}>
                   <label className={labelClass}>{f.label}</label>
                   <input type={f.type} className={inputClass} placeholder={f.placeholder}
-                    value={(form as any)[f.field]} onChange={(e) => update(f.field, e.target.value)} />
+                    value={form[f.field as "name" | "email" | "businessName" | "gst"]} onChange={(e) => update(f.field, e.target.value)} />
                 </div>
               ))}
               <div className="md:col-span-2">
@@ -137,21 +166,31 @@ const StallBookingForm = () => {
                 <label className={labelClass}>Event *</label>
                 <select className={inputClass} value={form.selectedEvent} onChange={(e) => update("selectedEvent", e.target.value)}>
                   <option value="">Select Event</option>
-                  {eventOptions.map((eventName) => <option key={eventName} value={eventName}>{eventName}</option>)}
+                  {events.map((eventName) => <option key={eventName._id} value={eventName._id}>{eventName.title}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className={labelClass}>Zone *</label>
+                <select className={inputClass} value={form.selectedZone} onChange={(e) => update("selectedZone", e.target.value)}>
+                  <option value="">Select Zone</option>
+                  {zones.map((zone) => <option key={zone._id} value={zone._id}>{zone.zoneName}</option>)}
                 </select>
               </div>
               <div>
                 <label className={labelClass}>Stall Category *</label>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                  {stallCategories.map((c) => (
-                    <button key={c} onClick={() => update("stallCategory", c)}
+                  {filteredCategories.map((c) => (
+                    <button key={c._id} onClick={() => update("stallCategory", c._id)}
                       className={`px-4 py-3 rounded-lg border text-sm font-medium transition-all ${
-                        form.stallCategory === c ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground hover:border-primary/50"
+                        form.stallCategory === c._id ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground hover:border-primary/50"
                       }`}>
-                      {c}
+                      {c.name}
                     </button>
                   ))}
                 </div>
+                {form.selectedEvent && filteredCategories.length === 0 ? (
+                  <p className="mt-2 text-xs font-medium text-muted-foreground">No stall categories configured for selected event.</p>
+                ) : null}
               </div>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
                 <div>
@@ -168,11 +207,7 @@ const StallBookingForm = () => {
                 </div>
                 <div>
                   <label className={labelClass}>Booking Type</label>
-                  <select className={inputClass} value={form.bookingType} onChange={(e) => update("bookingType", e.target.value)}>
-                    <option value="Standard">Standard</option>
-                    <option value="Premium">Premium</option>
-                    <option value="Corner">Corner Stall</option>
-                  </select>
+                  <input className={inputClass} value="Standard" disabled />
                 </div>
               </div>
             </div>
@@ -184,7 +219,7 @@ const StallBookingForm = () => {
               <div>
                 <label className={labelClass}>Payment Mode *</label>
                 <div className="grid grid-cols-2 gap-3">
-                  {["UPI", "NEFT/RTGS", "Bank Transfer", "Demand Draft"].map((m) => (
+                  {["mock", "UPI", "NEFT/RTGS", "Bank Transfer"].map((m) => (
                     <button key={m} onClick={() => update("paymentMode", m)}
                       className={`px-4 py-3 rounded-lg border text-sm font-medium transition-all ${
                         form.paymentMode === m ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground hover:border-primary/50"
@@ -202,47 +237,6 @@ const StallBookingForm = () => {
             </div>
           )}
 
-          {/* Step 4: Receipt Upload */}
-          {step === 4 && (
-            <div className="max-w-md mx-auto text-center">
-              <div className="border-2 border-dashed border-border rounded-2xl p-12 bg-muted/50">
-                <Upload className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                <p className="font-semibold text-foreground mb-2">Upload Payment Receipt</p>
-                <p className="text-sm text-muted-foreground mb-4">PDF, JPG or PNG (Max 5MB)</p>
-                <label className="inline-block px-6 py-2.5 rounded-lg bg-primary text-primary-foreground font-semibold text-sm cursor-pointer hover:opacity-90">
-                  Choose File
-                  <input type="file" className="hidden" accept=".pdf,.jpg,.jpeg,.png"
-                    onChange={(e) => update("receipt", e.target.files?.[0] || null)} />
-                </label>
-                {form.receipt && <p className="mt-3 text-sm text-secondary font-medium">✓ {form.receipt.name}</p>}
-              </div>
-            </div>
-          )}
-
-          {/* Step 5: Review */}
-          {step === 5 && (
-            <div className="space-y-4">
-              <h3 className="font-display text-xl font-bold text-foreground mb-4">Review Your Booking</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {[
-                  ["Name", form.name], ["Email", form.email], ["Mobile", form.mobile],
-                  ["Business", form.businessName], ["GST", form.gst || "N/A"],
-                  ["Address", `${form.address}, ${form.city}, ${form.state} - ${form.pincode}`],
-                  ["Event", form.selectedEvent],
-                  ["Stall Category", form.stallCategory], ["Stall Size", form.stallSize],
-                  ["Quantity", form.quantity], ["Booking Type", form.bookingType],
-                  ["Payment Mode", form.paymentMode], ["Transaction ID", form.transactionId || "N/A"],
-                  ["Receipt", form.receipt?.name || "Not uploaded"],
-                ].map(([label, value], i) => (
-                  <div key={i} className="bg-muted/50 rounded-lg p-3">
-                    <p className="text-xs text-muted-foreground uppercase tracking-wide">{label}</p>
-                    <p className="font-medium text-foreground text-sm">{value}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
           {/* Navigation */}
           {step > 0 && (
             <div className="flex justify-between mt-8 pt-6 border-t border-border">
@@ -254,12 +248,37 @@ const StallBookingForm = () => {
                   Next <ArrowRight className="w-4 h-4" />
                 </button>
               ) : (
-                <button className="flex items-center gap-2 px-8 py-3 rounded-lg bg-secondary text-secondary-foreground font-semibold hover:opacity-90 transition-opacity">
+                <button
+                  className="flex items-center gap-2 px-8 py-3 rounded-lg bg-secondary text-secondary-foreground font-semibold hover:opacity-90 transition-opacity"
+                  onClick={async () => {
+                    setMessage("");
+                    try {
+                      await createBooking({
+                        vendorName: form.name,
+                        vendorEmail: form.email,
+                        mobile: form.mobile,
+                        businessName: form.businessName,
+                        eventId: form.selectedEvent,
+                        zoneId: form.selectedZone,
+                        categoryId: form.stallCategory,
+                        stallSize: form.stallSize,
+                        quantity: Number(form.quantity),
+                        paymentMode: form.paymentMode,
+                        paymentRef: form.transactionId,
+                      });
+                      setMessage("Booking request submitted with pending status.");
+                      setStep(0);
+                    } catch (error) {
+                      setMessage(error instanceof Error ? error.message : "Failed to submit booking");
+                    }
+                  }}
+                >
                   <Check className="w-4 h-4" /> Submit Booking
                 </button>
               )}
             </div>
           )}
+          {message ? <p className="mt-4 text-sm font-semibold text-primary">{message}</p> : null}
         </div>
       </div>
     </section>

@@ -1,4 +1,5 @@
 import { useNavigate } from "react-router-dom";
+import { clearAuth } from "@/lib/auth";
 
 type HeaderProps = {
   title: string;
@@ -17,6 +18,10 @@ export function Header({ title, description, overview }: HeaderProps) {
   const displayTitle = overview?.title ?? title;
   const displayDescription = overview?.description ?? description;
   const displayActions = overview?.actions ?? [];
+  const handleLogout = () => {
+    clearAuth();
+    navigate("/login", { replace: true });
+  };
 
   return (
     <header className="px-3 pb-4 pt-3 sm:px-6 sm:pb-5 sm:pt-6 lg:px-8">
@@ -41,6 +46,13 @@ export function Header({ title, description, overview }: HeaderProps) {
                 {action}
               </button>
             ))}
+            <button
+              className="inline-flex items-center justify-center rounded-full border border-[color:var(--border-soft)] bg-white/70 px-5 py-3 text-sm font-semibold text-[var(--text-soft)] transition hover:bg-white"
+              onClick={handleLogout}
+              type="button"
+            >
+              Logout
+            </button>
             <button className="inline-flex items-center justify-center rounded-full bg-[linear-gradient(135deg,hsl(var(--saffron)),hsl(var(--maroon)))] px-5 py-3 text-sm font-semibold text-white transition hover:brightness-95" onClick={() => navigate("/")} type="button">Back to site</button>
           </div>
         </div>

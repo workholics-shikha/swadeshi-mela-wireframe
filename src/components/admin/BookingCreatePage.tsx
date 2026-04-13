@@ -1,22 +1,14 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Card } from "./PageScaffold";
 import type { SetPage } from "./types";
-
-const eventOptions = [
-  { id: "2026-main", label: "Swadeshi Mela 2026 - Main Ground" },
-  { id: "2026-winter", label: "Swadeshi Mela 2026 - Winter Edition" },
-  { id: "2025", label: "Swadeshi Mela 2025 - City Expo" },
-] as const;
-
-const stallOptionsByEvent: Record<(typeof eventOptions)[number]["id"], string[]> = {
-  "2026-main": ["A-01", "A-02", "A-03", "A-04", "A-05", "A-06"],
-  "2026-winter": ["B-01", "B-02", "B-03", "B-04", "B-05", "B-06"],
-  "2025": ["C-01", "C-02", "C-03", "C-04", "C-05", "C-06"],
-};
+import { getEvents, getZones, type EventItem, type ZoneItem } from "@/lib/domainApi";
 
 export function BookingCreatePage({ setPage }: { setPage: SetPage }) {
-  const [selectedEventId, setSelectedEventId] = useState<(typeof eventOptions)[number]["id"]>(eventOptions[0].id);
-  const [selectedStall, setSelectedStall] = useState(stallOptionsByEvent[eventOptions[0].id][0]);
+  const [events, setEvents] = useState<EventItem[]>([]);
+  const [zones, setZones] = useState<ZoneItem[]>([]);
+  const [selectedEventId, setSelectedEventId] = useState("");
+  const [selectedZone, setSelectedZone] = useState("");
+  const [selectedStall, setSelectedStall] = useState("A-01");
   const [vendorName, setVendorName] = useState("Meena Crafts Pvt Ltd");
   const [ownerName, setOwnerName] = useState("Meena Sharma");
   const [email, setEmail] = useState("meena@crafts.in");
@@ -24,11 +16,26 @@ export function BookingCreatePage({ setPage }: { setPage: SetPage }) {
   const [gstNumber, setGstNumber] = useState("23ABCDE1234F1Z5");
   const [city, setCity] = useState("Indore");
   const [note, setNote] = useState("Vendor called support desk and requested assisted booking for premium textile stalls.");
-  const stallsForSelectedEvent = useMemo(() => stallOptionsByEvent[selectedEventId], [selectedEventId]);
+  const stallsForSelectedEvent = useMemo(() => ["A-01", "A-02", "A-03", "A-04", "A-05", "A-06"], [selectedEventId]);
 
-  function handleEventChange(value: (typeof eventOptions)[number]["id"]) {
+  useEffect(() => {
+    getEvents().then((rows) => {
+      setEvents(rows);
+      if (rows[0]) setSelectedEventId(rows[0]._id);
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!selectedEventId) return;
+    getZones(selectedEventId).then((rows) => {
+      setZones(rows);
+      if (rows[0]) setSelectedZone(rows[0]._id);
+    });
+  }, [selectedEventId]);
+
+  function handleEventChange(value: string) {
     setSelectedEventId(value);
-    setSelectedStall(stallOptionsByEvent[value][0]);
+    setSelectedStall("A-01");
   }
 
   return (
@@ -59,12 +66,29 @@ export function BookingCreatePage({ setPage }: { setPage: SetPage }) {
             <select
               className="w-full rounded-[16px] border border-[color:var(--border-soft)] bg-white/80 px-4 py-3 text-sm text-[var(--text-main)] outline-none transition focus:border-[var(--brand)] focus:ring-2 focus:ring-[var(--brand-soft)]"
               id="create-booking-event"
-              onChange={(event) => handleEventChange(event.target.value as (typeof eventOptions)[number]["id"])}
+              onChange={(event) => handleEventChange(event.target.value)}
               value={selectedEventId}
             >
-              {eventOptions.map((eventOption) => (
-                <option key={eventOption.id} value={eventOption.id}>
-                  {eventOption.label}
+              {events.map((eventOption) => (
+                <option key={eventOption._id} value={eventOption._id}>
+                  {eventOption.title}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="mb-2 block text-sm font-semibold text-[var(--text-main)]" htmlFor="create-booking-zone">
+              Zone
+            </label>
+            <select
+              className="w-full rounded-[16px] border border-[color:var(--border-soft)] bg-white/80 px-4 py-3 text-sm text-[var(--text-main)] outline-none transition focus:border-[var(--brand)] focus:ring-2 focus:ring-[var(--brand-soft)]"
+              id="create-booking-zone"
+              onChange={(event) => setSelectedZone(event.target.value)}
+              value={selectedZone}
+            >
+              {zones.map((zone) => (
+                <option key={zone._id} value={zone._id}>
+                  {zone.zoneName}
                 </option>
               ))}
             </select>
