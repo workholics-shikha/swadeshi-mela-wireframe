@@ -79,13 +79,13 @@ export function getPageHeaderOverview(page: PageId, role: UserRole): HeaderOverv
           eyebrow: "Swadeshi Mela control room",
           title: "Executive Overview",
           description: "A fast read on occupancy, revenue, approvals, and operational momentum across the mela.",
-          actions: ["View reports", "Manage vendors"],
+          // actions: ["View reports", "Manage vendors"],
         }
       : {
           eyebrow: "Vendor command center",
           title: "Business Snapshot",
           description: "Track your stalls, application status, payments, and visibility before the mela opens.",
-          actions: ["View payments", "My bookings"],
+          actions: ["My bookings"],
         };
   }
 
@@ -94,7 +94,7 @@ export function getPageHeaderOverview(page: PageId, role: UserRole): HeaderOverv
       eyebrow: "Swadeshi Mela control room",
       title: "Event Management",
       description: "Review existing mela events, statuses, and create new event records.",
-      actions: ["Open draft event", "Create new event"],
+      actions: ["Create new event"],
     },
     "event-create": {
       eyebrow: "Swadeshi Mela control room",
@@ -112,13 +112,13 @@ export function getPageHeaderOverview(page: PageId, role: UserRole): HeaderOverv
       eyebrow: "Swadeshi Mela control room",
       title: "Edit Event",
       description: "Update event metadata and operational settings while keeping existing structure.",
-      actions: ["Discard changes", "Save changes"],
+      actions: [ "Save changes"],
     },
     categories: {
       eyebrow: "Swadeshi Mela control room",
       title: "Category Management",
       description: "Create and manage stall and event categories from one dedicated admin section.",
-      actions: ["Save categories", "Sync with events"],
+      actions: ["Save categories" ],
     },
     zones: {
       eyebrow: "Swadeshi Mela control room",

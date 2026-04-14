@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, useCallback } from "react";
-import { Check, ArrowRight, ArrowLeft } from "lucide-react";
+import { Check, ArrowRight, ArrowLeft, Receipt, Copy } from "lucide-react";
 import { createBooking, getCategories, getEvents, getZones, type Category, type EventItem, type ZoneItem } from "@/lib/domainApi";
 
 const steps = ["OTP Verification", "Business Details", "Stall Selection", "Payment"];
@@ -281,34 +281,29 @@ const StallBookingForm = () => {
                 ) : null}
 
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-                <div>
-                  <label className={labelClass}>Stall Size *</label>
-                  <select className={inputClass(!!errors.stallSize)} value={form.stallSize} onChange={(e) => update("stallSize", e.target.value)}>
-                    <option value="">Select Size</option>
-                    {stallSizes.map((s) => <option key={s} value={s}>{s}</option>)}
-                  </select>
-                  {errors.stallSize && <p className={errorClass}>{errors.stallSize}</p>}
-                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  <div>
+                    <label className={labelClass}>Stall Size *</label>
+                    <select className={inputClass(!!errors.stallSize)} value={form.stallSize} onChange={(e) => update("stallSize", e.target.value)}>
+                      <option value="">Select Size</option>
+                      {stallSizes.map((s) => <option key={s} value={s}>{s}</option>)}
+                    </select>
+                    {errors.stallSize && <p className={errorClass}>{errors.stallSize}</p>}
+                  </div>
 
-                <div>
-                  <label className={labelClass}>Quantity *</label>
-                  <input type="number" min={1} className={inputClass(!!errors.quantity)} value={form.quantity}
-                    onChange={(e) => update("quantity", e.target.value)} />
-                  {errors.quantity && <p className={errorClass}>{errors.quantity}</p>}
+                  <div>
+                    <label className={labelClass}>Quantity *</label>
+                    <input type="number" min={1} className={inputClass(!!errors.quantity)} value={form.quantity}
+                      onChange={(e) => update("quantity", e.target.value)} />
+                    {errors.quantity && <p className={errorClass}>{errors.quantity}</p>}
+                  </div>
                 </div>
-
-                <div>
-                  <label className={labelClass}>Booking Type</label>
-                  <input className={inputClass} value="Standard" disabled />
-                </div>
-              </div>
             </div>
           )}
 
           {/* Step 3: Payment */}
           {step === 3 && (
-            <div className="space-y-5 max-w-md mx-auto">
+            <div className="space-y-6 max-w-md mx-auto">
               <div>
                 <label className={labelClass}>Payment Mode *</label>
                 <div className="grid grid-cols-2 gap-3">
@@ -321,12 +316,38 @@ const StallBookingForm = () => {
                   ))}
                 </div>
                 {errors.paymentMode && <p className={errorClass}>{errors.paymentMode}</p>}
-
               </div>
-              <div>
-                <label className={labelClass}>Transaction ID / Reference</label>
-                <input type="text" className={inputClass} placeholder="Enter transaction reference" value={form.transactionId}
-                  onChange={(e) => update("transactionId", e.target.value)} />
+
+              <div className="pt-4 border-t border-border">
+                <label className={labelClass}>
+                  <span className="flex items-center gap-2">
+                    <Receipt className="w-4 h-4 text-muted-foreground" />
+                    Transaction ID / Reference Number
+                  </span>
+                </label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    className={`${baseInputClass} pl-10 pr-10 font-mono text-sm tracking-wide ${errors.paymentMode ? "border-red-500 focus:ring-red-500/30 focus:border-red-500" : "border-border"}`}
+                    placeholder="e.g., TXN123456789"
+                    value={form.transactionId}
+                    onChange={(e) => update("transactionId", e.target.value.toUpperCase())}
+                  />
+                  <Receipt className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  {form.transactionId && (
+                    <button
+                      type="button"
+                      onClick={() => navigator.clipboard.writeText(form.transactionId)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded hover:bg-muted transition-colors"
+                      title="Copy transaction ID"
+                    >
+                      <Copy className="w-4 h-4 text-muted-foreground hover:text-foreground" />
+                    </button>
+                  )}
+                </div>
+                <p className="mt-2 text-xs text-muted-foreground">
+                  Enter the transaction ID or reference number from your payment confirmation.
+                </p>
               </div>
             </div>
           )}

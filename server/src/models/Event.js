@@ -23,6 +23,7 @@ const eventSchema = new mongoose.Schema(
           categoryName: { type: String, required: true, trim: true },
           zoneId: { type: mongoose.Schema.Types.ObjectId, ref: "ZoneMaster", default: null },
           stalls: { type: Number, min: 0, default: 0 },
+          amount: { type: Number, min: 0, default: 0 },
         },
       ],
       default: [],
