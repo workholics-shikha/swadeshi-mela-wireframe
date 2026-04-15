@@ -10,6 +10,7 @@ async function start() {
   const MONGODB_URI = requiredEnv("MONGODB_URI"); // ✅ correct
   const JWT_SECRET = requiredEnv("JWT_SECRET");
   const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || "7d";
+  const seedAdmin = require("./src/seed/seedAdmin");
 
   await connectDB(MONGODB_URI); // ✅ FIX HERE
 
@@ -18,9 +19,19 @@ async function start() {
     jwtExpiresIn: JWT_EXPIRES_IN,
   });
 
+  app.get("/seed-admin", async (req, res) => {
+    try {
+      await seedAdmin(); // tumhara seeder function
+      res.send("✅ Admin Seeded");
+    } catch (err) {
+      res.status(500).send(err.message);
+    }
+  });
+
   app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
   });
+
 }
 
 start().catch((err) => {
