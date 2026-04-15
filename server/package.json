@@ -4,9 +4,11 @@
   "description": "",
   "main": "src/server.js",
   "scripts": {
-    "dev": "nodemon src/server.js",
     "start": "node src/server.js",
-    "seed:admin": "node src/seed/seedAdmin.js"
+    "seed:admin": "node src/seed/seedAdmin.js",
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
   },
   "keywords": [],
   "author": "",
@@ -24,6 +26,6 @@
   },
   "devDependencies": {
     "nodemon": "^3.1.14",
-    "vite": "^5.0.0"
+    "vite": "^5.4.21"
   }
 }
