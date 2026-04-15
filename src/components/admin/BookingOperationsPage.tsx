@@ -162,7 +162,7 @@ export function BookingOperationsPage({ setPage }: { setPage: SetPage }) {
                   ["Event", selectedBooking.event?.title || "-"],
                   ["Category", selectedBooking.category?.name || "-"],
                   ["Stall Size", selectedBooking.stallSize || "-"],
-                  ["Quantity", selectedBooking.quantity || 1],
+                  ["Quantity", String(selectedBooking.quantity || 1)],
                   ["Status", selectedBooking.status],
                 ]} 
               />
