@@ -79,13 +79,13 @@ export function getPageHeaderOverview(page: PageId, role: UserRole): HeaderOverv
           eyebrow: "Swadeshi Mela control room",
           title: "Executive Overview",
           description: "A fast read on occupancy, revenue, approvals, and operational momentum across the mela.",
-          actions: ["View reports", "Manage vendors"],
+          // actions: ["View reports", "Manage vendors"],
         }
       : {
           eyebrow: "Vendor command center",
           title: "Business Snapshot",
           description: "Track your stalls, application status, payments, and visibility before the mela opens.",
-          actions: ["View payments", "My bookings"],
+          actions: ["My bookings"],
         };
   }
 
@@ -94,13 +94,13 @@ export function getPageHeaderOverview(page: PageId, role: UserRole): HeaderOverv
       eyebrow: "Swadeshi Mela control room",
       title: "Event Management",
       description: "Review existing mela events, statuses, and create new event records.",
-      actions: ["Open draft event", "Create new event"],
+      // actions: ["Create new event"],
     },
     "event-create": {
       eyebrow: "Swadeshi Mela control room",
       title: "Create New Mela Event",
       description: "Basic event details, category allocation, and final review before publishing.",
-      actions: ["Save draft", "Continue setup"],
+      // actions: ["Save draft", "Continue setup"],
     },
     "event-details": {
       eyebrow: "Swadeshi Mela control room",
@@ -112,31 +112,31 @@ export function getPageHeaderOverview(page: PageId, role: UserRole): HeaderOverv
       eyebrow: "Swadeshi Mela control room",
       title: "Edit Event",
       description: "Update event metadata and operational settings while keeping existing structure.",
-      actions: ["Discard changes", "Save changes"],
+      // actions: [ "Save changes"],
     },
     categories: {
       eyebrow: "Swadeshi Mela control room",
       title: "Category Management",
       description: "Create and manage stall and event categories from one dedicated admin section.",
-      actions: ["Save categories", "Sync with events"],
+      // actions: ["Save categories" ],
     },
     zones: {
       eyebrow: "Swadeshi Mela control room",
       title: "Zone Management",
       description: "Create and maintain zone masters for consistent operational planning.",
-      actions: ["Create zone", "Export zones"],
+      // actions: ["Create zone", "Export zones"],
     },
     stalls: {
       eyebrow: "Swadeshi Mela control room",
       title: "Interactive Stall Allocation",
       description: "Zone occupancy, availability, and quick assignment tools for the mela floor.",
-      actions: ["All zones", "Assign stall"],
+      // actions: ["All zones", "Assign stall"],
     },
     bookings: {
       eyebrow: "Swadeshi Mela control room",
       title: "Booking Operations",
       description: "A central place to handle reservations, payment status, and assignment escalations.",
-      actions: ["Export bookings", "Open payments"],
+      actions: ["Export bookings" ],
     },
     "booking-create": {
       eyebrow: "Swadeshi Mela control room",

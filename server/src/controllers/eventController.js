@@ -45,6 +45,7 @@ async function createEvent(req, res) {
             categoryName: String(row.categoryName).trim(),
             zoneId: row.zoneId ? String(row.zoneId) : null,
             stalls: Number(row.stalls) || 0,
+            amount: Number(row.amount) || 0,
           }));
       }
     } catch (_error) {

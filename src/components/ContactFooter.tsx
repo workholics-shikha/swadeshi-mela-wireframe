@@ -50,6 +50,11 @@ const ContactFooter = () => (
           </div>
         </div>
         <div className="mt-8 pt-6 border-t border-cream/10 text-center">
+          <div className="flex flex-wrap gap-6 justify-center mb-4 text-xs">
+            <a href="/terms" className="text-cream/70 hover:text-cream transition-colors font-medium">Terms & Conditions</a>
+            <a href="#" className="text-cream/70 hover:text-cream transition-colors font-medium">Privacy Policy</a>
+            <a href="#" className="text-cream/70 hover:text-cream transition-colors font-medium">Contact</a>
+          </div>
           <p className="text-cream/50 text-sm">© 2026 Swadeshi Mela. All rights reserved. Made with ❤️ in India.</p>
         </div>
       </div>

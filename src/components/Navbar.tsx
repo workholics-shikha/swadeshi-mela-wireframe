@@ -4,12 +4,13 @@ import { Link } from "react-router-dom";
 import logo from "@/assets/logo.png";
 
 const navLinks = [
-  { label: "About", href: "#about" },
-  { label: "Gallery", href: "#gallery" },
-  { label: "Stalls", href: "#stalls" },
-  { label: "Event Details", href: "#event" },
-  { label: "FAQ", href: "#faq" },
-  { label: "Contact", href: "#contact" },
+  { label: "Home", to: "/" },
+  { label: "About", to: "/#about" },
+  { label: "Gallery", to: "/#gallery" },
+  { label: "Stalls", to: "/#stalls" },
+  { label: "Event Details", to: "/#event" },
+  { label: "FAQ", to: "/#faq" },
+  { label: "Contact", to: "/#contact" },
 ];
 
 const Navbar = () => {
@@ -18,23 +19,38 @@ const Navbar = () => {
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-card/90 backdrop-blur-md border-b border-border">
       <div className="container flex items-center justify-between h-16 md:h-20">
-        <a href="#" className="flex items-center gap-2">
+        <Link to="/" className="flex items-center gap-2">
           <img src={logo} alt="Swadeshi Mela" className="h-10 w-10 md:h-12 md:w-12" />
           <span className="font-display text-xl md:text-2xl font-bold text-gradient-festive">
             Swadeshi Mela
           </span>
-        </a>
+        </Link>
 
         {/* Desktop */}
         <div className="hidden lg:flex items-center gap-8">
           {navLinks.map((l) => (
-            <a
-              key={l.href}
-              href={l.href}
-              className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
-            >
-              {l.label}
-            </a>
+            // <Link
+            //   key={l.to}
+            //   to={l.to}
+            //   className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
+            // >
+            //   {l.label}
+            // </Link>
+            <Link
+              key={l.to}
+              to="/"
+              onClick={() => {
+                if (l.to !== "/") {
+                  setTimeout(() => {
+                    const id = l.to.replace("/#", "");
+                    const el = document.getElementById(id);
+                    if (el) {
+                      el.scrollIntoView({ behavior: "smooth" });
+                    }
+                  }, 100);
+                }
+              }}
+            > {l.label} </Link>
           ))}
           <Link
             to="/login"
@@ -48,12 +64,12 @@ const Navbar = () => {
           >
             Admin Panel
           </Link>
-          <a
-            href="#booking"
+          <Link
+            to="/book-stall"
             className="px-5 py-2.5 rounded-lg bg-primary text-primary-foreground font-semibold text-sm hover:opacity-90 transition-opacity"
           >
             Book a Stall
-          </a>
+          </Link>
         </div>
 
         {/* Mobile toggle */}
@@ -71,14 +87,14 @@ const Navbar = () => {
         <div className="lg:hidden bg-card border-t border-border">
           <div className="container py-4 flex flex-col gap-3">
             {navLinks.map((l) => (
-              <a
-                key={l.href}
-                href={l.href}
+              <Link
+                key={l.to}
+                to={l.to}
                 className="text-sm font-medium text-muted-foreground hover:text-primary py-2"
                 onClick={() => setOpen(false)}
               >
                 {l.label}
-              </a>
+              </Link>
             ))}
             <Link
               to="/login"
@@ -94,13 +110,13 @@ const Navbar = () => {
             >
               Admin Panel
             </Link>
-            <a
-              href="#booking"
+            <Link
+              to="/book-stall"
               className="mt-2 px-5 py-2.5 rounded-lg bg-primary text-primary-foreground font-semibold text-sm text-center"
               onClick={() => setOpen(false)}
             >
               Book a Stall
-            </a>
+            </Link>
           </div>
         </div>
       )}
@@ -109,3 +125,4 @@ const Navbar = () => {
 };
 
 export default Navbar;
+

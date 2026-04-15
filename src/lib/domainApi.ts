@@ -35,6 +35,7 @@ export type EventItem = {
     categoryName: string;
     zoneId?: string | null;
     stalls?: number;
+    amount?: number;
   }>;
 };
 export type BookingItem = {
@@ -104,7 +105,7 @@ export async function createEvent(data: {
   status: "active" | "inactive";
   bannerImage?: File | null;
   galleryImages?: File[];
-  categoryZoneMappings?: Array<{ categoryName: string; zoneId: string; stalls: number }>;
+  categoryZoneMappings?: Array<{ categoryName: string; zoneId: string; stalls: number; amount: number }>;
 }) {
   const fd = new FormData();
   fd.append("title", data.title);
@@ -131,37 +132,29 @@ export async function createEvent(data: {
   return res.json();
 }
 
+export async function updateEvent(id: string, data: any) {
+  const fd = new FormData();
+  Object.entries(data).forEach(([key, value]) => {
+    if (key === 'categoryZoneMappings' && Array.isArray(value)) {
+      fd.append(key, JSON.stringify(value));
+    } else {
+      fd.append(key, String(value));
+    }
+  });
+  const res = await apiFetch(`/api/events/${id}`, {
+    method: "PUT",
+    body: fd,
+    headers: {}
+  });
+  return res.json();
+}
+
 export async function deleteEvent(id: string) {
   const res = await apiFetch(`/api/events/${id}`, { method: "DELETE" });
   return res.json();
 }
 
-export async function updateEvent(
-  id: string,
-  data: Partial<{
-    title: string;
-    category: string;
-    description: string;
-    startDate: string;
-    endDate: string;
-    openingTime: string;
-    closingTime: string;
-    venueName: string;
-    fullAddress: string;
-    city: string;
-    state: string;
-    pincode: string;
-    totalStalls: number;
-    bookingEnabled: boolean;
-    status: "active" | "inactive";
-  }>,
-) {
-  const res = await apiFetch(`/api/events/${id}`, {
-    method: "PUT",
-    body: JSON.stringify(data),
-  });
-  return res.json();
-}
+
 
 export async function createBooking(data: Record<string, unknown>) {
   const res = await fetch(`${API_BASE}/api/bookings`, {
@@ -216,3 +209,4 @@ export async function removeZone(id: string) {
   const res = await apiFetch(`/api/zones/${id}`, { method: "DELETE" });
   return res.json();
 }
+

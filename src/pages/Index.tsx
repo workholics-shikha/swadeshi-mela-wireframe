@@ -8,10 +8,10 @@ import TestimonialsSection from "@/components/TestimonialsSection";
 import EventDetailsSection from "@/components/EventDetailsSection";
 import StallCategoriesSection from "@/components/StallCategoriesSection";
 import BookingCTA from "@/components/BookingCTA";
-import StallBookingForm from "@/components/StallBookingForm";
 import FAQSection from "@/components/FAQSection";
 import SponsorsSection from "@/components/SponsorsSection";
 import ContactFooter from "@/components/ContactFooter";
+import ScrollToTop from "@/components/ScrollToTop";
 
 const Index = () => (
   <div className="min-h-screen">
@@ -25,10 +25,10 @@ const Index = () => (
     <EventDetailsSection />
     <StallCategoriesSection />
     <BookingCTA />
-    <StallBookingForm />
     <FAQSection />
     <SponsorsSection />
     <ContactFooter />
+    <ScrollToTop />
   </div>
 );
 
