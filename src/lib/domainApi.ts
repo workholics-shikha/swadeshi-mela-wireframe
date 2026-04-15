@@ -1,6 +1,6 @@
 import { apiFetch } from "@/lib/auth";
 
-const API_BASE = "http://localhost:5000";
+const API_BASE = "https://docker-project-1-zoqb.onrender.com";
 
 export type Category = { _id: string; name: string; type: "event" | "stall"; status: "active" | "inactive" };
 export type ZoneItem = {

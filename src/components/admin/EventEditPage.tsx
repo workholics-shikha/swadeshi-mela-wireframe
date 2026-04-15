@@ -83,7 +83,7 @@ export function EventEditPage({ setPage }: { setPage: SetPage }) {
       pincode: selectedEvent.pincode || "",
       totalStalls: selectedEvent.totalStalls || 0,
       status: selectedEvent.status || "active",
-      categoryZoneMappings: selectedEvent.categoryZoneMappings || [],
+      categoryZoneMappings: (selectedEvent.categoryZoneMappings || []).map(m => ({ categoryName: m.categoryName, zoneId: m.zoneId, stalls: m.stalls ?? 0, amount: m.amount ?? 0 })),
     });
     // Pre-fill categoryRows from event data
     if (selectedEvent.categoryZoneMappings && selectedEvent.categoryZoneMappings.length > 0) {
