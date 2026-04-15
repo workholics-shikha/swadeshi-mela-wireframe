@@ -7,6 +7,8 @@ const categories = [
   { name: "Electronics & Startups", size: "12×12 ft", price: "₹30,000", available: 15, color: "bg-accent/10 text-accent" },
 ];
 
+import { Link } from "react-router-dom";
+
 const StallCategoriesSection = () => (
   <section id="stalls" className="py-20 md:py-28 bg-festive-pattern">
     <div className="container">
@@ -31,9 +33,9 @@ const StallCategoriesSection = () => (
             </div>
             <div className="flex items-center justify-between text-sm text-muted-foreground border-t border-border pt-4">
               <span>Size: {c.size}</span>
-              <a href="#booking" className="text-primary font-semibold hover:underline">
+              <Link to="/book-stall" className="text-primary font-semibold hover:underline">
                 Book Now →
-              </a>
+              </Link>
             </div>
           </div>
         ))}

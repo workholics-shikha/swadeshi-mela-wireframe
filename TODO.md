@@ -1,12 +1,16 @@
-# Terms & Conditions Checkbox Implementation Progress
+# Task: ✅ COMPLETED - Move Stall Booking Form to /book-stall Route
 
-## TODO Steps:
-- [x] 1. Create src/pages/TermsAndConditions.tsx with content and routing
-- [x] 2. Edit src/components/StallBookingForm.tsx to add T&C state, checkbox, validation, and link
-- [x] 3. Edit src/App.tsx to add /terms route
-- [ ] 4. Test the implementation (manual form testing)
-- [ ] 5. Mark complete
+## All Steps ✅
 
-**Status:** Starting implementation...
+- ✅ 1. `src/pages/BookStall.tsx` created
+- ✅ 2. `src/App.tsx` updated (route added)
+- ✅ 3. `src/pages/Index.tsx` cleaned
+- ✅ 4. Navbar.tsx buttons updated
+- ✅ 5. HeroBanner.tsx data/CTAs updated
+- ✅ 6. BookingCTA.tsx updated
+- ✅ 7. StallCategoriesSection.tsx updated
+- ✅ 8. TermsAndConditions.tsx updated
+- ✅ 9. Ready to test
 
+**Run** `bun vite dev` (or `bun run dev`) to test. Navigate "Book a STALL" buttons → /book-stall, form works, home clean.
 

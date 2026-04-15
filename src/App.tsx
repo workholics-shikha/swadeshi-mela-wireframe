@@ -9,6 +9,7 @@ import Index from "./pages/Index.tsx";
 import VendorLogin from "./pages/VendorLogin.tsx";
 import TermsAndConditions from "./pages/TermsAndConditions.tsx";
 import AdminPanel from "./pages/AdminPanel.tsx";
+import BookStall from "./pages/BookStall.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -95,6 +96,7 @@ const App = () => (
               </ProtectedRoute>
             }
           />
+          <Route path="/book-stall" element={<BookStall />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

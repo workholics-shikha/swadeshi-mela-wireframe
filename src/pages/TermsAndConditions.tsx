@@ -76,7 +76,7 @@ const TermsAndConditions = () => {
                                 <Link to="/" className="flex items-center gap-2 text-sm hover:text-primary transition-colors w-full p-2 rounded-md hover:bg-accent">
                                     <span>🏠 Home</span>
                                 </Link>
-                                <Link to="/#booking" className="flex items-center gap-2 text-sm hover:text-primary transition-colors w-full p-2 rounded-md hover:bg-accent">
+                                <Link to="/book-stall" className="flex items-center gap-2 text-sm hover:text-primary transition-colors w-full p-2 rounded-md hover:bg-accent">
                                     <span>📦 Book Stall</span>
                                 </Link>
                             </CardContent>
@@ -231,9 +231,9 @@ const TermsAndConditions = () => {
                             <div className="space-y-4">
                                 <p className="text-lg font-semibold">By booking, you confirm acceptance of all terms</p>
                                 <div className="flex flex-col sm:flex-row gap-4 justify-center items-center max-w-md mx-auto">
-                                    <Link to="/booking" className="w-full sm:w-auto">
+                                    <Link to="/book-stall" className="w-full sm:w-auto">
                                         <Button size="lg" className="w-full sm:w-auto font-semibold shadow-lg">
-                                            ← Back to Booking
+                                            Book a Stall
                                         </Button>
                                     </Link>
                                     {/* <Button variant="outline" size="lg" className="w-full sm:w-auto font-semibold">

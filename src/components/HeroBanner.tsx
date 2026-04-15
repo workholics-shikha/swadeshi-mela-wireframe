@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import hero1 from "@/assets/hero-mela-1.jpg";
 import hero2 from "@/assets/hero-mela-2.jpg";
 
@@ -7,14 +8,14 @@ const slides = [
     image: hero1,
     title: "Swadeshi Mela 2026",
     subtitle: "India's Grandest Cultural & Trade Fair",
-    cta1: { label: "Book a Stall", href: "#booking" },
+    cta1: { label: "Book a Stall", href: "/book-stall" },
     cta2: { label: "Explore Mela", href: "#about" },
   },
   {
     image: hero2,
     title: "Celebrate Indian Heritage",
     subtitle: "500+ Stalls · Handicrafts · Food · Culture · Commerce",
-    cta1: { label: "Register Now", href: "#booking" },
+    cta1: { label: "Register Now", href: "/book-stall" },
     cta2: { label: "View Gallery", href: "#gallery" },
   },
 ];
@@ -61,12 +62,12 @@ const HeroBanner = () => {
             {slide.subtitle}
           </p>
           <div className="flex flex-wrap gap-4">
-            <a
-              href={slide.cta1.href}
+            <Link
+              to={slide.cta1.href}
               className="px-8 py-3.5 rounded-lg bg-primary text-primary-foreground font-semibold text-base hover:opacity-90 transition-opacity"
             >
               {slide.cta1.label}
-            </a>
+            </Link>
             <a
               href={slide.cta2.href}
               className="px-8 py-3.5 rounded-lg border-2 border-cream/60 text-cream font-semibold text-base hover:bg-cream/10 transition-colors"
