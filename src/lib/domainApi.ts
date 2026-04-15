@@ -1,6 +1,5 @@
 import { apiFetch } from "@/lib/auth";
-
-const API_BASE = "https://swadeshi-mela-wireframe.onrender.com/";
+import { buildApiUrl } from "@/lib/apiConfig";
 
 export type Category = { _id: string; name: string; type: "event" | "stall"; status: "active" | "inactive" };
 export type ZoneItem = {
@@ -63,7 +62,7 @@ export type VendorItem = {
 };
 
 export async function getCategories(): Promise<Category[]> {
-  const res = await fetch(`${API_BASE}/api/categories`);
+  const res = await fetch(buildApiUrl("/api/categories"));
   return res.json();
 }
 
@@ -83,7 +82,7 @@ export async function removeCategory(id: string) {
 }
 
 export async function getEvents(): Promise<EventItem[]> {
-  const res = await fetch(`${API_BASE}/api/events`);
+  const res = await fetch(buildApiUrl("/api/events"));
   return res.json();
 }
 
@@ -157,7 +156,7 @@ export async function deleteEvent(id: string) {
 
 
 export async function createBooking(data: Record<string, unknown>) {
-  const res = await fetch(`${API_BASE}/api/bookings`, {
+  const res = await fetch(buildApiUrl("/api/bookings"), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
@@ -191,7 +190,7 @@ export async function updateVendorStatus(id: string, status: "pending" | "approv
 
 export async function getZones(eventId?: string): Promise<ZoneItem[]> {
   const query = eventId ? `?eventId=${encodeURIComponent(eventId)}` : "";
-  const res = await fetch(`${API_BASE}/api/zones${query}`);
+  const res = await fetch(buildApiUrl(`/api/zones${query}`));
   return res.json();
 }
 

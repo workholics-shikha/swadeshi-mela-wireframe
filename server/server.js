@@ -1,8 +1,8 @@
 require("dotenv").config();
 
-const { connectDB } = require("./config/db");
-const { createApp } = require("./app");
-const { requiredEnv } = require("./utils/env");
+const { connectDB } = require("./src/config/db");
+const { createApp } = require("./src/app");
+const { requiredEnv } = require("./src/utils/env");
 
 async function start() {
   const PORT = Number(process.env.PORT || 5000);

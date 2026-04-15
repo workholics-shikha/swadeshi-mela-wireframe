@@ -1,3 +1,5 @@
+import { buildApiUrl } from "@/lib/apiConfig";
+
 export type AuthRole = "admin" | "vendor";
 
 type LoginResponse = {
@@ -11,7 +13,6 @@ type LoginResponse = {
 
 const TOKEN_KEY = "swadeshi_token";
 const USER_KEY = "swadeshi_user";
-const API_BASE = "https://swadeshi-mela-wireframe.onrender.com/";
 
 export function getAuthToken() {
   return localStorage.getItem(TOKEN_KEY);
@@ -46,7 +47,7 @@ function getAuthHeader() {
 
 export async function apiFetch(path: string, init: RequestInit = {}) {
   const isFormData = init.body instanceof FormData;
-  const response = await fetch(`${API_BASE}${path}`, {
+  const response = await fetch(buildApiUrl(path), {
     ...init,
     headers: {
       ...(isFormData ? {} : { "Content-Type": "application/json" }),
@@ -72,7 +73,7 @@ export async function validateSession() {
 }
 
 export async function loginWithEmailPassword(email: string, password: string) {
-  const response = await fetch(`${API_BASE}/api/auth/login`, {
+  const response = await fetch(buildApiUrl("/api/auth/login"), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ email, password }),
