@@ -170,7 +170,7 @@ const StallBookingForm = () => {
             <div className="space-y-5 max-w-md mx-auto">
               <div>
                 <label className={labelClass}>Mobile Number *</label>
-                <input type="tel" <input type="tel" className={inputClass(!!(errors.mobile || mobileError))} placeholder="+91 98765 43210" value={form.mobile} placeholder="+91 98765 43210" value={form.mobile}
+                <input type="tel" className={inputClass(!!(errors.mobile || mobileError))} placeholder="+91 98765 43210" value={form.mobile}
                   onChange={(e) => { update("mobile", e.target.value); setMobileError(""); }} />
                 {(errors.mobile || mobileError) && <p className={errorClass}>{errors.mobile || mobileError}</p>}
 
@@ -183,7 +183,7 @@ const StallBookingForm = () => {
                 <>
                   <div>
                     <label className={labelClass}>Enter OTP</label>
-                    <input type="text" <input type="text" className={inputClass(!!(errors.otp || otpError))} placeholder="Enter 6-digit OTP" maxLength={6} placeholder="Enter 6-digit OTP" maxLength={6}
+                    <input type="text" className={inputClass(!!(errors.otp || otpError))} placeholder="Enter 6-digit OTP" maxLength={6}
                       value={otp} onChange={(e) => { setOtp(e.target.value); setOtpError(""); }} />
                     {(errors.otp || otpError) && <p className={errorClass}>{errors.otp || otpError}</p>}
 
