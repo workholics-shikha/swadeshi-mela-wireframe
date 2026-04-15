@@ -7,6 +7,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthSessionExpiredError, getAuthToken, getCurrentUser, validateSession } from "@/lib/auth";
 import Index from "./pages/Index.tsx";
 import VendorLogin from "./pages/VendorLogin.tsx";
+import TermsAndConditions from "./pages/TermsAndConditions.tsx";
 import AdminPanel from "./pages/AdminPanel.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
@@ -77,6 +78,7 @@ const App = () => (
           <Route path="/login" element={<VendorLogin />} />
           <Route path="/vendor/login" element={<Navigate replace to="/login" />} />
           <Route path="/vendor/register" element={<Navigate replace to="/login" />} />
+          <Route path="/terms" element={<TermsAndConditions />} />
           <Route
             path="/admin"
             element={

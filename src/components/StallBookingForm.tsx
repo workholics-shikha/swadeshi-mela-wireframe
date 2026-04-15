@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useState, useCallback } from "react";
 import { Check, ArrowRight, ArrowLeft, Receipt, Copy } from "lucide-react";
 import { createBooking, getCategories, getEvents, getZones, type Category, type EventItem, type ZoneItem } from "@/lib/domainApi";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
+import { Link } from "react-router-dom";
 
 const steps = ["OTP Verification", "Business Details", "Stall Selection", "Payment"];
 const stallSizes = ["6×6 ft", "9×9 ft", "12×12 ft"];
@@ -22,6 +25,7 @@ const StallBookingForm = () => {
     state: "", pincode: "", selectedEvent: "", selectedZone: "", stallCategory: "", stallSize: "", quantity: "1",
     paymentMode: "mock", transactionId: "",
   });
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
 
   useEffect(() => {
     getEvents().then(setEvents);
@@ -112,6 +116,7 @@ const StallBookingForm = () => {
         break;
       case 3:
         if (isEmpty(form.paymentMode)) newErrors.paymentMode = "Payment mode is required";
+        if (!acceptedTerms) newErrors.terms = "You must accept the Terms & Conditions to continue";
         break;
     }
 
@@ -125,13 +130,11 @@ const StallBookingForm = () => {
     }
   };
 
-
   const baseInputClass = "w-full px-4 py-3 rounded-lg border bg-card text-foreground text-sm focus:ring-2 focus:ring-primary/30 focus:border-primary outline-none transition-all";
   const inputClass = (hasError = false) => `${baseInputClass} ${hasError ? "border-red-500 focus:ring-red-500/30 focus:border-red-500" : "border-border"}`;
   const labelClass = "block text-sm font-medium text-foreground mb-1.5";
 
   const errorClass = "mt-1 text-xs text-red-500";
-
 
   return (
     <section id="booking" className="py-20 md:py-28 bg-background">
@@ -259,7 +262,7 @@ const StallBookingForm = () => {
                 <label className={labelClass}>Zone *</label>
                 <select className={inputClass(!!errors.selectedZone)} value={form.selectedZone} onChange={(e) => update("selectedZone", e.target.value)}>
                   <option value="">Select Zone</option>
-                  {zones.map((zone) => <option key={zone._id} value={zone._id}>{zone.zoneName}</option>)}
+                  {zones.map((z) => <option key={z._id} value={z._id}>{z.zoneName}</option>)}
                 </select>
                 {errors.selectedZone && <p className={errorClass}>{errors.selectedZone}</p>}
               </div>
@@ -269,8 +272,7 @@ const StallBookingForm = () => {
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                   {filteredCategories.map((c) => (
                     <button key={c._id} onClick={() => update("stallCategory", c._id)}
-                      className={`px-4 py-3 rounded-lg border text-sm font-medium transition-all ${form.stallCategory === c._id ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground hover:border-primary/50"
-                        }`}>
+                      className={`px-4 py-3 rounded-lg border text-sm font-medium transition-all ${form.stallCategory === c._id ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground hover:border-primary/50"}`}>
                       {c.name}
                     </button>
                   ))}
@@ -279,25 +281,24 @@ const StallBookingForm = () => {
                 {form.selectedEvent && filteredCategories.length === 0 ? (
                   <p className="mt-2 text-xs font-medium text-muted-foreground">No stall categories configured for selected event.</p>
                 ) : null}
-
               </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                  <div>
-                    <label className={labelClass}>Stall Size *</label>
-                    <select className={inputClass(!!errors.stallSize)} value={form.stallSize} onChange={(e) => update("stallSize", e.target.value)}>
-                      <option value="">Select Size</option>
-                      {stallSizes.map((s) => <option key={s} value={s}>{s}</option>)}
-                    </select>
-                    {errors.stallSize && <p className={errorClass}>{errors.stallSize}</p>}
-                  </div>
-
-                  <div>
-                    <label className={labelClass}>Quantity *</label>
-                    <input type="number" min={1} className={inputClass(!!errors.quantity)} value={form.quantity}
-                      onChange={(e) => update("quantity", e.target.value)} />
-                    {errors.quantity && <p className={errorClass}>{errors.quantity}</p>}
-                  </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div>
+                  <label className={labelClass}>Stall Size *</label>
+                  <select className={inputClass(!!errors.stallSize)} value={form.stallSize} onChange={(e) => update("stallSize", e.target.value)}>
+                    <option value="">Select Size</option>
+                    {stallSizes.map((s) => <option key={s} value={s}>{s}</option>)}
+                  </select>
+                  {errors.stallSize && <p className={errorClass}>{errors.stallSize}</p>}
                 </div>
+
+                <div>
+                  <label className={labelClass}>Quantity *</label>
+                  <input type="number" min={1} className={inputClass(!!errors.quantity)} value={form.quantity}
+                    onChange={(e) => update("quantity", e.target.value)} />
+                  {errors.quantity && <p className={errorClass}>{errors.quantity}</p>}
+                </div>
+              </div>
             </div>
           )}
 
@@ -309,8 +310,7 @@ const StallBookingForm = () => {
                 <div className="grid grid-cols-2 gap-3">
                   {["mock", "UPI", "NEFT/RTGS", "Bank Transfer"].map((m) => (
                     <button key={m} onClick={() => update("paymentMode", m)}
-                      className={`px-4 py-3 rounded-lg border text-sm font-medium transition-all ${form.paymentMode === m ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground hover:border-primary/50"
-                        } ${errors.paymentMode ? "ring-2 ring-red-500/20" : ""}`}>
+                      className={`px-4 py-3 rounded-lg border text-sm font-medium transition-all ${form.paymentMode === m ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground hover:border-primary/50"} ${errors.paymentMode ? "ring-2 ring-red-500/20" : ""}`}>
                       {m}
                     </button>
                   ))}
@@ -328,7 +328,7 @@ const StallBookingForm = () => {
                 <div className="relative">
                   <input
                     type="text"
-                    className={`${baseInputClass} pl-10 pr-10 font-mono text-sm tracking-wide ${errors.paymentMode ? "border-red-500 focus:ring-red-500/30 focus:border-red-500" : "border-border"}`}
+                    className={`${baseInputClass} pl-10 pr-10 font-mono text-sm tracking-wide`}
                     placeholder="e.g., TXN123456789"
                     value={form.transactionId}
                     onChange={(e) => update("transactionId", e.target.value.toUpperCase())}
@@ -349,6 +349,24 @@ const StallBookingForm = () => {
                   Enter the transaction ID or reference number from your payment confirmation.
                 </p>
               </div>
+
+              {/* Terms & Conditions Checkbox */}
+              <div className="pt-6 border-t border-border">
+                <div className="flex items-start space-x-3 p-4 bg-muted/30 rounded-xl border">
+                  <Checkbox
+                    id="terms"
+                    checked={acceptedTerms}
+                    onCheckedChange={(checked) => setAcceptedTerms(Boolean(checked))}
+                  />
+                  <Label htmlFor="terms" className="text-sm leading-6 cursor-pointer flex-1 font-medium">
+                    I have read and agree to the{" "}
+                    <Link to="/terms" className="text-primary hover:underline font-semibold transition-colors">
+                      Terms & Conditions
+                    </Link>
+                  </Label>
+                </div>
+                {errors.terms && <p className={errorClass}>{errors.terms}</p>}
+              </div>
             </div>
           )}
 
@@ -367,7 +385,6 @@ const StallBookingForm = () => {
                   Next <ArrowRight className="w-4 h-4" />
                 </button>
               ) : (
-
                 <button
                   className="flex items-center gap-2 px-8 py-3 rounded-lg bg-secondary text-secondary-foreground font-semibold hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
                   onClick={async () => {
@@ -385,6 +402,7 @@ const StallBookingForm = () => {
                           stallSize: form.stallSize,
                           quantity: Number(form.quantity),
                           paymentMode: form.paymentMode,
+                          acceptedTerms: true,
                           paymentRef: form.transactionId,
                         });
                         setMessage("Booking request submitted successfully!");
@@ -397,7 +415,6 @@ const StallBookingForm = () => {
                       }
                     }
                   }}
-
                 >
                   <Check className="w-4 h-4" /> Submit Booking
                 </button>
