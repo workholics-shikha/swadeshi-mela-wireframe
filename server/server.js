@@ -10,18 +10,17 @@ async function start() {
   const MONGODB_URI = requiredEnv("MONGODB_URI"); // ✅ correct
   const JWT_SECRET = requiredEnv("JWT_SECRET");
   const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || "7d";
-  
+
   await connectDB(MONGODB_URI); // ✅ FIX HERE
 
   const app = createApp({
     jwtSecret: JWT_SECRET,
     jwtExpiresIn: JWT_EXPIRES_IN,
   });
- 
+
   app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
   });
-
 }
 
 start().catch((err) => {
