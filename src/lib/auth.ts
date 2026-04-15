@@ -11,7 +11,7 @@ type LoginResponse = {
 
 const TOKEN_KEY = "swadeshi_token";
 const USER_KEY = "swadeshi_user";
-const API_BASE = "https://docker-project-1-zoqb.onrender.com";
+const API_BASE = "https://swadeshi-mela-wireframe.onrender.com/";
 
 export function getAuthToken() {
   return localStorage.getItem(TOKEN_KEY);
