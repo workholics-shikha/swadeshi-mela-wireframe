@@ -31,12 +31,12 @@ export function CategoryManagementPage() {
     load();
   }, []);
 
-  const [draftType, setDraftType] = useState<"event" | "stall">("event");
+  const [draftType, setDraftType] = useState<"event" | "stall">("stall");
   const [draftStatus, setDraftStatus] = useState<"active" | "inactive">("active");
 
   const startCreate = () => {
     setDraft({ id: "", name: "", status: "active" });
-    setDraftType("event");
+    setDraftType("stall");
     setDraftStatus("active");
   };
   const startEdit = (category: Category) => {
@@ -127,7 +127,7 @@ export function CategoryManagementPage() {
             <div>
               <p className="mb-2 text-sm font-semibold text-[var(--text-main)]">Category type</p>
               <div className="flex gap-3">
-                {(["event", "stall"] as const).map((type) => (
+                {(["stall", "event"] as const).map((type) => (
                   <button className={`rounded-full px-4 py-2 text-sm font-semibold ${draftType === type ? "bg-[linear-gradient(135deg,hsl(var(--saffron)),hsl(var(--maroon)))] text-white" : "border border-[color:var(--border-soft)] bg-white text-[var(--text-soft)]"}`} key={type} onClick={() => setDraftType(type)} type="button">
                     {type}
                   </button>

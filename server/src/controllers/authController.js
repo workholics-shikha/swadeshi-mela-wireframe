@@ -9,12 +9,18 @@ async function login(req, res) {
 
   const user = await User.findOne({ email: String(email).toLowerCase() }).select("+password");
   if (!user) {
-    return res.status(401).json({ message: "Invalid credentials" });
+    return res.status(401).json({ message: "Invalid credentials-1" });
   }
 
+  console.log("INPUT PASSWORD:", password);
+  console.log("DB HASH:", user.password);
+
   const ok = await user.verifyPassword(String(password));
+  console.log("MATCH RESULT:", ok);
+ 
+
   if (!ok) {
-    return res.status(401).json({ message: "Invalid credentials" });
+    return res.status(401).json({ message: "Invalid credentials-2" });
   }
 
   const token = signToken(
