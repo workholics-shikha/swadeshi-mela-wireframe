@@ -76,6 +76,13 @@ async function createBooking(req, res) {
     vendorEmail,
     mobile,
     businessName,
+    ownerName,
+    gstNumber,
+    address,
+    city,
+    state,
+    pincode,
+    note,
     eventId,
     zoneId,
     categoryId,
@@ -207,17 +214,27 @@ async function createBooking(req, res) {
   }
 
   const booking = await Booking.create({
-    vendorName,
+    vendorName: String(vendorName).trim(),
     vendorEmail: normalizedEmail,
-    mobile,
-    businessName,
+    mobile: String(mobile).trim(),
+    businessName: String(businessName).trim(),
+    ownerName: ownerName ? String(ownerName).trim() : "",
+    gstNumber: gstNumber ? String(gstNumber).trim() : "",
+    address: address ? String(address).trim() : "",
+    city: city ? String(city).trim() : "",
+    state: state ? String(state).trim() : "",
+    pincode: pincode ? String(pincode).trim() : "",
+    note: note ? String(note).trim() : "",
     event: event._id,
     zone: zone?._id || null,
     category: category._id,
-    stallSize,
+    stallSize: String(stallSize).trim(),
     quantity: requestedQuantity,
     paymentMode: paymentMode || "mock",
     paymentRef: paymentRef || "",
+    paymentAmount: paidAmount,
+    finalAmount: totalAmount,
+    paymentOption: normalizedPaymentOption,
     status: bookingStatus,
     allotment: {
       zone: zone?._id ? String(zone._id) : "",
@@ -250,9 +267,13 @@ async function allotBooking(req, res) {
   if (!booking) return res.status(404).json({ message: "Booking not found" });
 
   booking.status = status;
-  booking.allotment.zone = zone || "";
-  booking.allotment.stallNumber = stallNumber || "";
+  booking.allotment.zone = zone || booking.allotment.zone || "";
+  booking.allotment.stallNumber = stallNumber || booking.allotment.stallNumber || "";
   booking.allotment.updatedAt = new Date();
+  if (status === "approved" && Number(booking.finalAmount) > 0) {
+    booking.paymentAmount = Number(booking.finalAmount);
+    booking.paymentOption = "full";
+  }
   await booking.save();
 
   const populated = await Booking.findById(id).populate("event", "title startDate venueName").populate("zone", "zoneName").populate("category", "name");

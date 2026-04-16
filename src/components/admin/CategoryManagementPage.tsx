@@ -1,8 +1,8 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Edit3, Plus, Trash2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
-import { Card, SimpleTable } from "./PageScaffold";
+import { Card } from "./PageScaffold";
 import { createCategory, getCategories, removeCategory, updateCategory, type Category } from "@/lib/domainApi";
 
 export function CategoryManagementPage() {
@@ -14,6 +14,8 @@ export function CategoryManagementPage() {
     name: "",
     status: "active",
   });
+  const [highlightForm, setHighlightForm] = useState(false);
+  const formCardRef = useRef<HTMLDivElement | null>(null);
 
   const totalPages = Math.max(1, Math.ceil(categories.length / pageSize));
   const safeCurrentPage = Math.min(currentPage, totalPages);
@@ -34,16 +36,29 @@ export function CategoryManagementPage() {
   const [draftType, setDraftType] = useState<"event" | "stall">("stall");
   const [draftStatus, setDraftStatus] = useState<"active" | "inactive">("active");
 
+  const triggerFormHighlight = () => {
+    setHighlightForm(true);
+    formCardRef.current?.focus();
+  };
+
   const startCreate = () => {
     setDraft({ id: "", name: "", status: "active" });
     setDraftType("stall");
     setDraftStatus("active");
+    triggerFormHighlight();
   };
   const startEdit = (category: Category) => {
     setDraft({ id: category._id, name: category.name, status: category.status });
     setDraftType(category.type);
     setDraftStatus(category.status);
+    triggerFormHighlight();
   };
+
+  useEffect(() => {
+    if (!highlightForm) return;
+    const timeoutId = window.setTimeout(() => setHighlightForm(false), 1600);
+    return () => window.clearTimeout(timeoutId);
+  }, [highlightForm]);
 
   const onSave = async () => {
     if (!draft.name.trim()) return;
@@ -118,11 +133,20 @@ export function CategoryManagementPage() {
           </div>
         </section>
 
+        <div
+          className={`rounded-[24px] transition-all duration-500 ${
+            highlightForm
+              ? "scale-[1.01] shadow-[0_0_0_4px_rgba(211,140,34,0.12),0_18px_45px_rgba(136,38,63,0.12)]"
+              : ""
+          }`}
+          ref={formCardRef}
+          tabIndex={-1}
+        >
         <Card title={!draft.id ? "Create Category" : "Edit Category"} subtitle="Create, update, or maintain the selected master category.">
           <div className="space-y-4">
             <div>
               <p className="mb-2 text-sm font-semibold text-[var(--text-main)]">Category name</p>
-              <Input className="h-12 rounded-[16px] border-[color:var(--border-soft)] bg-white text-[var(--text-main)]" onChange={(e) => setDraft((c) => ({ ...c, name: e.target.value }))} placeholder="Enter category name" value={draft.name} />
+              <Input autoFocus={highlightForm} className={`h-12 rounded-[16px] bg-white text-[var(--text-main)] transition-all duration-500 ${highlightForm ? "border-[color:rgba(211,140,34,0.55)] ring-4 ring-[rgba(211,140,34,0.16)]" : "border-[color:var(--border-soft)]"}`} onChange={(e) => setDraft((c) => ({ ...c, name: e.target.value }))} placeholder="Enter category name" value={draft.name} />
             </div>
             <div>
               <p className="mb-2 text-sm font-semibold text-[var(--text-main)]">Category type</p>
@@ -151,9 +175,8 @@ export function CategoryManagementPage() {
             </button>
           </div>
         </Card>
+        </div>
       </div>
-
-      <SimpleTable title="Category Summary" headers={["Metric", "Value"]} rows={[["Total categories", String(categories.length)], ["Active categories", String(categories.filter((c) => c.status === "active").length)]]} />
     </div>
   );
 }

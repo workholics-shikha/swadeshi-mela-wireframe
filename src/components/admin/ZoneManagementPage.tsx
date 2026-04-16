@@ -1,8 +1,8 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Edit3, Plus, Search, Trash2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
-import { Card, SimpleTable } from "./PageScaffold";
+import { Card } from "./PageScaffold";
 import { createZone, getZones, removeZone, updateZone, type ZoneItem } from "@/lib/domainApi";
 
 type ZoneDraft = {
@@ -20,6 +20,8 @@ export function ZoneManagementPage() {
   const [query, setQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [draft, setDraft] = useState<ZoneDraft>(defaultDraft);
+  const [highlightForm, setHighlightForm] = useState(false);
+  const formCardRef = useRef<HTMLDivElement | null>(null);
 
   async function load() {
     const rows = await getZones();
@@ -43,14 +45,31 @@ export function ZoneManagementPage() {
     return filteredZones.slice(startIndex, startIndex + pageSize);
   }, [filteredZones, safeCurrentPage]);
 
-  const startCreate = () => setDraft(defaultDraft);
+  const triggerFormHighlight = () => {
+    setHighlightForm(true);
+    formCardRef.current?.focus();
+  };
+
+  const startCreate = () => {
+    setDraft(defaultDraft);
+    triggerFormHighlight();
+  };
   const startEdit = (zone: ZoneItem) =>
-    setDraft({
-      id: zone._id,
-      zoneName: zone.zoneName,
-      description: zone.description || "",
-      status: zone.status,
-    });
+    {
+      setDraft({
+        id: zone._id,
+        zoneName: zone.zoneName,
+        description: zone.description || "",
+        status: zone.status,
+      });
+      triggerFormHighlight();
+    };
+
+  useEffect(() => {
+    if (!highlightForm) return;
+    const timeoutId = window.setTimeout(() => setHighlightForm(false), 1600);
+    return () => window.clearTimeout(timeoutId);
+  }, [highlightForm]);
 
   const onSave = async () => {
     if (!draft.zoneName.trim()) return;
@@ -142,11 +161,20 @@ export function ZoneManagementPage() {
           </div>
         </section>
 
+        <div
+          className={`rounded-[24px] transition-all duration-500 ${
+            highlightForm
+              ? "scale-[1.01] shadow-[0_0_0_4px_rgba(211,140,34,0.12),0_18px_45px_rgba(136,38,63,0.12)]"
+              : ""
+          }`}
+          ref={formCardRef}
+          tabIndex={-1}
+        >
         <Card title={!draft.id ? "Create Zone" : "Edit Zone"} subtitle="Create, update, or maintain the selected zone master.">
           <div className="space-y-4">
             <div>
               <p className="mb-2 text-sm font-semibold text-[var(--text-main)]">Zone name</p>
-              <Input className="h-12 rounded-[16px] border-[color:var(--border-soft)] bg-white text-[var(--text-main)]" onChange={(e) => setDraft((c) => ({ ...c, zoneName: e.target.value }))} placeholder="Enter zone name" value={draft.zoneName} />
+              <Input autoFocus={highlightForm} className={`h-12 rounded-[16px] bg-white text-[var(--text-main)] transition-all duration-500 ${highlightForm ? "border-[color:rgba(211,140,34,0.55)] ring-4 ring-[rgba(211,140,34,0.16)]" : "border-[color:var(--border-soft)]"}`} onChange={(e) => setDraft((c) => ({ ...c, zoneName: e.target.value }))} placeholder="Enter zone name" value={draft.zoneName} />
             </div>
             <div>
               <p className="mb-2 text-sm font-semibold text-[var(--text-main)]">Description (optional)</p>
@@ -169,9 +197,8 @@ export function ZoneManagementPage() {
             </button>
           </div>
         </Card>
+        </div>
       </div>
-
-      <SimpleTable title="Zone Summary" headers={["Metric", "Value"]} rows={[["Total zones", String(zones.length)], ["Active zones", String(zones.filter((z) => z.status === "active").length)]]} />
     </div>
   );
 }
