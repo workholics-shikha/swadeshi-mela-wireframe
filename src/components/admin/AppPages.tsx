@@ -39,7 +39,7 @@ export const pageMeta: Record<PageId, PageMeta> = {
   bookings: { title: "Booking Operations", description: "Monitor reservation status, assignment queues, and booking support activity." },
   "booking-create": { title: "Create Booking", description: "Create a booking on behalf of vendor and capture booking plus vendor details." },
   vendors: { title: "Vendor Hub", description: "Track vendor onboarding, applications, readiness, and account health." },
-  approvals: { title: "Approvals Desk", description: "Review KYC, documents, notes, and approval decisions before confirmation." },
+  approvals: { title: "Vendors", description: "View registered vendors and manage their current account status." },
   payments: { title: "Payment Flow", description: "Review dues, transaction history, and payment readiness for booked stalls." },
   reports: { title: "Reports & Analytics", description: "Analyze occupancy, revenue, vendor mix, and year-over-year mela performance." },
   notifications: { title: "Notifications Center", description: "Send reminders, watch escalations, and manage operational communications." },
@@ -47,16 +47,16 @@ export const pageMeta: Record<PageId, PageMeta> = {
 };
 
 const adminSidebarSections: ReadonlyArray<SidebarSection> = [
-  { title: "Main", items: [{ id: "dashboard", label: "Dashboard" },{ id: "categories", label: "Categories" },{ id: "zones", label: "Zones" },{ id: "events", label: "Events" },{ id: "stalls", label: "Stalls" },{ id: "bookings", label: "Bookings" }] },
-  { title: "Vendors", items: [{ id: "approvals", label: "Approvals", badge: "12" }] },
-  { title: "Finance", items: [{ id: "payments", label: "Payments" },{ id: "reports", label: "Reports" }] },
-  { title: "System", items: [{ id: "notifications", label: "Notifications" },{ id: "settings", label: "Settings" }] },
+  { title: "Main", items: [{ id: "dashboard", label: "Dashboard" },{ id: "zones", label: "Zones" },{ id: "categories", label: "Categories" },{ id: "events", label: "Events" },{ id: "stalls", label: "Stalls" },{ id: "bookings", label: "Bookings" }] },
+  { title: "Vendors", items: [{ id: "approvals", label: "Vendors" }] },
+  { title: "Finance", items: [{ id: "payments", label: "Payments" }] },
+  { title: "System", items: [{ id: "notifications", label: "Notifications" }] },
 ];
 
 const vendorSidebarSections: ReadonlyArray<SidebarSection> = [
   { title: "Main", items: [{ id: "dashboard", label: "Dashboard" },{ id: "bookings", label: "My Bookings" }] },
   { title: "Account", items: [{ id: "vendors", label: "My Profile" },{ id: "payments", label: "Payments" }] },
-  { title: "System", items: [{ id: "notifications", label: "Notifications" },{ id: "settings", label: "Settings" }] },
+  { title: "System", items: [{ id: "notifications", label: "Notifications" }] },
 ];
 
 const adminQuickAccess: ReadonlyArray<QuickAccessItem> = [
@@ -64,7 +64,7 @@ const adminQuickAccess: ReadonlyArray<QuickAccessItem> = [
 ];
 
 const vendorQuickAccess: ReadonlyArray<QuickAccessItem> = [
-  { id: "dashboard", label: "Overview" },{ id: "bookings", label: "My Bookings" },{ id: "payments", label: "Payments" },{ id: "settings", label: "Settings" },
+  { id: "dashboard", label: "Overview" },{ id: "bookings", label: "My Bookings" },{ id: "payments", label: "Payments" },
 ];
 
 export const roleNavigation: Record<UserRole, { sidebarSections: ReadonlyArray<SidebarSection>; quickAccessPages: ReadonlyArray<QuickAccessItem>; defaultPage: PageId }> = {
@@ -152,9 +152,9 @@ export function getPageHeaderOverview(page: PageId, role: UserRole): HeaderOverv
     },
     approvals: {
       eyebrow: "Swadeshi Mela control room",
-      title: "Vendor Approval Desk",
-      description: "Review KYC, bank details, internal notes, and make final approval decisions.",
-      actions: ["Bulk approve", "Export list"],
+      title: "Vendors",
+      description: "Browse vendor accounts and update their approval status from one place.",
+      actions: ["Export list"],
     },
     payments: {
       eyebrow: "Swadeshi Mela control room",

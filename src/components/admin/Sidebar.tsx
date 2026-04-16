@@ -12,7 +12,7 @@ type SidebarProps = {
 };
 
 const roleIdentity: Record<UserRole, { portalLabel: string; initials: string; name: string; title: string }> = {
-  Admin: { portalLabel: "Admin Portal", initials: "RA", name: "Riya Admin", title: "Super Admin" },
+  Admin: { portalLabel: "Admin Portal", initials: "RA", name: "Admin", title: "Super Admin" },
   Vendor: { portalLabel: "Vendor Portal", initials: "MC", name: "Meena Crafts", title: "Registered Vendor" },
 };
 

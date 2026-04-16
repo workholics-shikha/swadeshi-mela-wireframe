@@ -6,7 +6,13 @@ async function connectDB(mongoUri) {
   }
 
   mongoose.set("strictQuery", true);
-  await mongoose.connect(mongoUri);
+
+  await mongoose.connect(mongoUri, {
+    dbName: "swadeshi_mela", // ✅ correct place
+  });
+
+  console.log("✅ Connected DB:", mongoose.connection.name);
+
   return mongoose.connection;
 }
 

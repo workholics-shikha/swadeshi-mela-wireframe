@@ -83,7 +83,14 @@ async function createEvent(req, res) {
 
 async function updateEvent(req, res) {
   try {
-    const payload = req.body || {};
+    const payload = { ...(req.body || {}) };
+    if (typeof payload.categoryZoneMappings === "string") {
+      try {
+        payload.categoryZoneMappings = JSON.parse(payload.categoryZoneMappings);
+      } catch (_error) {
+        return res.status(400).json({ message: "Invalid categoryZoneMappings format" });
+      }
+    }
     const updated = await updateEventInService(req.params.id, payload);
     if (!updated) return res.status(404).json({ message: "Event not found" });
     return res.json(updated);

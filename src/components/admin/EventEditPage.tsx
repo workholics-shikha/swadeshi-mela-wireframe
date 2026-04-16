@@ -124,7 +124,6 @@ export function EventEditPage({ setPage }: { setPage: SetPage }) {
 
   const onSave = async () => {
     if (!selectedEvent?._id) return;
-    console.log('categoryRows before save:', categoryRows);
     const mappings = categoryRows
       .filter((row) => row.category.trim())
       .map((row) => ({
@@ -133,16 +132,13 @@ export function EventEditPage({ setPage }: { setPage: SetPage }) {
         stalls: Number(row.stalls) || 0,
         amount: Number(row.amount) || 0,
       }));
-    console.log('payload mappings:', mappings);
     const payload = { ...form, categoryZoneMappings: mappings };
-    console.log('final payload:', payload);
     setSaving(true);
     setMessage("");
     try {
       await updateEvent(selectedEvent._id, payload);
       setMessage("Event updated successfully.");
     } catch (error) {
-      console.error('Save error:', error);
       setMessage(error instanceof Error ? error.message : "Failed to update event.");
     } finally {
       setSaving(false);

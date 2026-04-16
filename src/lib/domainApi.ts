@@ -60,6 +60,13 @@ export type VendorItem = {
   status: "pending" | "approved" | "active";
   createdAt: string;
 };
+export type BookingAvailability = {
+  totalStalls: number;
+  reservedCount: number;
+  availableCount: number;
+  availableStallNumbers: string[];
+  reservedStallNumbers: string[];
+};
 
 export async function getCategories(): Promise<Category[]> {
   const res = await fetch(buildApiUrl("/api/categories"));
@@ -131,19 +138,30 @@ export async function createEvent(data: {
   return res.json();
 }
 
-export async function updateEvent(id: string, data: any) {
-  const fd = new FormData();
-  Object.entries(data).forEach(([key, value]) => {
-    if (key === 'categoryZoneMappings' && Array.isArray(value)) {
-      fd.append(key, JSON.stringify(value));
-    } else {
-      fd.append(key, String(value));
-    }
-  });
+export async function updateEvent(
+  id: string,
+  data: Partial<{
+    title: string;
+    category: string;
+    description: string;
+    startDate: string;
+    endDate: string;
+    openingTime: string;
+    closingTime: string;
+    venueName: string;
+    fullAddress: string;
+    city: string;
+    state: string;
+    pincode: string;
+    totalStalls: number;
+    bookingEnabled: boolean;
+    status: "active" | "inactive";
+    categoryZoneMappings: Array<{ categoryName: string; zoneId?: string; stalls: number; amount: number }>;
+  }>,
+) {
   const res = await apiFetch(`/api/events/${id}`, {
     method: "PUT",
-    body: fd,
-    headers: {}
+    body: JSON.stringify(data),
   });
   return res.json();
 }
@@ -164,6 +182,20 @@ export async function createBooking(data: Record<string, unknown>) {
   const payload = await res.json();
   if (!res.ok) {
     throw new Error(payload?.message || "Failed to create booking");
+  }
+  return payload;
+}
+
+export async function getBookingAvailability(params: {
+  eventId: string;
+  zoneId: string;
+  categoryId: string;
+}): Promise<BookingAvailability> {
+  const query = new URLSearchParams(params).toString();
+  const res = await fetch(buildApiUrl(`/api/bookings/availability?${query}`));
+  const payload = await res.json();
+  if (!res.ok) {
+    throw new Error(payload?.message || "Failed to fetch booking availability");
   }
   return payload;
 }

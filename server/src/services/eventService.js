@@ -24,11 +24,34 @@ async function createEvent(payload) {
 }
 
 async function updateEvent(id, payload) {
-  if (payload.category) {
-    const categoryExists = await Category.findOne({ _id: payload.category, type: "event" });
+  const normalizedPayload = { ...payload };
+
+  if (normalizedPayload.category) {
+    const categoryExists = await Category.findOne({ _id: normalizedPayload.category, type: "event" });
     if (!categoryExists) throw new Error("Invalid event category");
   }
-  const updated = await Event.findOneAndUpdate({ _id: id, deletedAt: null }, payload, {
+
+  if ("totalStalls" in normalizedPayload) {
+    normalizedPayload.totalStalls = Number(normalizedPayload.totalStalls) || 0;
+  }
+
+  if ("bookingEnabled" in normalizedPayload) {
+    normalizedPayload.bookingEnabled =
+      normalizedPayload.bookingEnabled === true || normalizedPayload.bookingEnabled === "true";
+  }
+
+  if (Array.isArray(normalizedPayload.categoryZoneMappings)) {
+    normalizedPayload.categoryZoneMappings = normalizedPayload.categoryZoneMappings
+      .filter((row) => row && row.categoryName)
+      .map((row) => ({
+        categoryName: String(row.categoryName).trim(),
+        zoneId: row.zoneId ? String(row.zoneId) : null,
+        stalls: Number(row.stalls) || 0,
+        amount: Number(row.amount) || 0,
+      }));
+  }
+
+  const updated = await Event.findOneAndUpdate({ _id: id, deletedAt: null }, normalizedPayload, {
     returnDocument: "after",
     runValidators: true,
   });
