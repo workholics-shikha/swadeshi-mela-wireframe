@@ -9,7 +9,7 @@ async function login(req, res) {
 
   const user = await User.findOne({ email: String(email).toLowerCase() }).select("+password");
   if (!user) {
-    return res.status(401).json({ message: "Invalid credentials-1" });
+    return res.status(401).json({ message: "Invalid credentials" });
   }
 
   console.log("INPUT PASSWORD:", password);
@@ -20,7 +20,7 @@ async function login(req, res) {
  
 
   if (!ok) {
-    return res.status(401).json({ message: "Invalid credentials-2" });
+    return res.status(401).json({ message: "Invalid credentials" });
   }
 
   const token = signToken(
