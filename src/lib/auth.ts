@@ -6,8 +6,11 @@ type LoginResponse = {
   token: string;
   user: {
     id: string;
+    name: string;
     email: string;
     role: AuthRole;
+    status?: string;
+    mobile?: string;
   };
 };
 

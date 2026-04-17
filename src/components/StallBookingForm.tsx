@@ -1,15 +1,48 @@
 import { useEffect, useMemo, useState, useCallback } from "react";
-import { Check, ArrowRight, ArrowLeft, Receipt, Copy, Maximize2, X } from "lucide-react";
+import { Check, ArrowRight, ArrowLeft, Receipt, Copy, Maximize2, X, FileText, Shield, AlertCircle } from "lucide-react";
 import { createBooking, getBookingAvailability, getCategories, getEvents, getZones, type BookingAvailability, type Category, type EventItem, type ZoneItem } from "@/lib/domainApi";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { Link } from "react-router-dom";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import venueLayoutImage from "@/assets/venue-layout.jpg";
 
 const steps = ["OTP Verification", "Business Details", "Stall Selection", "Payment"];
 const states = ["Madhya Pradesh", "Delhi", "Maharashtra", "Gujarat", "Rajasthan", "Uttar Pradesh", "Tamil Nadu", "Karnataka", "West Bengal", "Other"];
 const DEFAULT_STALL_SIZE = "Standard Stall";
 const MIN_PARTIAL_PAYMENT = 2000;
+const bookingTerms = [
+  {
+    title: "Booking Process",
+    icon: FileText,
+    accentClass: "text-primary",
+    points: [
+      "Submitting the stall form is a booking request and remains subject to organizer approval and availability.",
+      "Booking confirmation is shared only after payment verification and internal approval.",
+      "Stall allocation may be adjusted by the organizer to match category and venue planning requirements.",
+    ],
+  },
+  {
+    title: "Payment Policy",
+    icon: Shield,
+    accentClass: "text-secondary",
+    points: [
+      "Payments made toward stall booking are treated as committed once verified by the organizer.",
+      "The selected payment amount must match the payment option chosen in the booking flow.",
+      "You should keep your payment reference safe because it may be required for booking support or reconciliation.",
+    ],
+  },
+  {
+    title: "Vendor Responsibility",
+    icon: AlertCircle,
+    accentClass: "text-amber-600",
+    points: [
+      "Vendors are responsible for complying with venue rules, safety instructions, and permitted product categories.",
+      "Subletting or unauthorized transfer of an allotted stall is not allowed.",
+      "Participation remains subject to event policies, operational constraints, and force majeure conditions.",
+    ],
+  },
+];
 
 const StallBookingForm = () => {
   const [step, setStep] = useState(0);
@@ -25,6 +58,7 @@ const StallBookingForm = () => {
   const [categories, setCategories] = useState<Category[]>([]);
   const [message, setMessage] = useState("");
   const [isVenueLayoutOpen, setIsVenueLayoutOpen] = useState(false);
+  const [isTermsDialogOpen, setIsTermsDialogOpen] = useState(false);
   const [paymentOption, setPaymentOption] = useState<"full" | "partial">("full");
   const [paymentAmount, setPaymentAmount] = useState("");
   const [availability, setAvailability] = useState<BookingAvailability | null>(null);
@@ -32,7 +66,7 @@ const StallBookingForm = () => {
   const [selectedStallNumbers, setSelectedStallNumbers] = useState<string[]>([]);
   const [form, setForm] = useState({
     name: "", email: "", mobile: "", businessName: "", gst: "", address: "", city: "",
-    state: "", pincode: "", selectedEvent: "", selectedZone: "", stallCategory: "", stallSize: DEFAULT_STALL_SIZE, quantity: "1",
+    state: "", pincode: "", selectedEvent: "", selectedZone: "", stallCategory: "", stallSize: DEFAULT_STALL_SIZE,
     paymentMode: "mock", transactionId: "",
   });
   const [acceptedTerms, setAcceptedTerms] = useState(false);
@@ -127,15 +161,13 @@ const StallBookingForm = () => {
   const isEmpty = (value: string) => !value.trim();
   const isValidEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
   const isValidPincode = (pin: string) => /^\d{6}$/.test(pin);
-  const isValidQuantity = (qty: string) => Number(qty) >= 1;
   const isValidMobile = (mobile: string) => /^\d{10}$/.test(mobile.replace(/\D/g, ""));
   const normalizeMobile = (mobile: string) => mobile.replace(/\D/g, "").slice(-10);
-  const quantityValue = Math.max(1, Number(form.quantity) || 1);
+  const quantityValue = selectedStallNumbers.length;
   const perStallPrice = Number(selectedCategoryMapping?.amount) || 0;
   const totalStallPrice = perStallPrice * quantityValue;
   const finalAmount = totalStallPrice;
   const numericPaymentAmount = Number(paymentAmount) || 0;
-  const maxAvailableQuantity = availability?.availableCount ?? Number(selectedCategoryMapping?.stalls) ?? 0;
   const canLoadAvailability = Boolean(form.selectedEvent && form.selectedZone && form.stallCategory);
 
   useEffect(() => {
@@ -177,10 +209,6 @@ const StallBookingForm = () => {
       .then((payload) => {
         setAvailability(payload);
         setAvailabilityError("");
-        setForm((current) => {
-          const normalizedQuantity = String(Math.max(1, Math.min(Number(current.quantity) || 1, payload.availableCount || 1)));
-          return current.quantity === normalizedQuantity ? current : { ...current, quantity: normalizedQuantity };
-        });
       })
       .catch((error) => {
         setAvailability(null);
@@ -190,20 +218,17 @@ const StallBookingForm = () => {
 
   useEffect(() => {
     if (!availability) return;
-    setSelectedStallNumbers((current) => current.filter((stallNumber) => availability.availableStallNumbers.includes(stallNumber)).slice(0, quantityValue));
-  }, [availability, quantityValue]);
+    setSelectedStallNumbers((current) => current.filter((stallNumber) => availability.availableStallNumbers.includes(stallNumber)));
+  }, [availability]);
 
   const toggleStallNumber = (stallNumber: string) => {
     setSelectedStallNumbers((current) => {
       if (current.includes(stallNumber)) {
         return current.filter((item) => item !== stallNumber);
       }
-      if (current.length >= quantityValue) {
-        return current;
-      }
       return [...current, stallNumber];
     });
-    setErrors((current) => ({ ...current, stallNumbers: "", quantity: "" }));
+    setErrors((current) => ({ ...current, stallNumbers: "" }));
   };
 
   const validateStep = () => {
@@ -253,23 +278,18 @@ const StallBookingForm = () => {
         } else if (isEmpty(form.selectedZone)) {
           newErrors.selectedZone = "Zone is required";
         }
-        if (!isValidQuantity(form.quantity)) {
-          newErrors.quantity = "Quantity must be at least 1";
-        } else if (availability && quantityValue > availability.availableCount) {
-          newErrors.quantity = `Only ${availability.availableCount} stall(s) are currently available`;
-        }
         if (canLoadAvailability && availabilityError) {
           newErrors.stallNumbers = availabilityError;
         } else if (availability && availability.availableCount === 0) {
           newErrors.stallNumbers = "No stalls are currently available for this category and zone";
-        } else if (availability && selectedStallNumbers.length !== quantityValue) {
-          newErrors.stallNumbers = `Select ${quantityValue} stall number${quantityValue > 1 ? "s" : ""}`;
+        } else if (selectedStallNumbers.length === 0) {
+          newErrors.stallNumbers = "Select at least one stall from the stall view";
         }
         break;
       case 3:
         if (isEmpty(form.paymentMode)) newErrors.paymentMode = "Payment mode is required";
         if (!finalAmount) {
-          newErrors.paymentAmount = "Select your stall details first to calculate the final amount";
+          newErrors.paymentAmount = "Select your stall(s) first to calculate the final amount";
         } else if (paymentOption === "full") {
           if (numericPaymentAmount !== finalAmount) {
             newErrors.paymentAmount = "Full payment must match the final amount";
@@ -555,20 +575,21 @@ const StallBookingForm = () => {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                <div>
-                  <label className={labelClass}>Quantity *</label>
-                  <input type="number" min={1} max={maxAvailableQuantity || undefined} className={inputClass(!!errors.quantity)} value={form.quantity}
-                    onChange={(e) => {
-                      const nextValue = Number(e.target.value) || 1;
-                      const safeValue = maxAvailableQuantity > 0 ? Math.min(nextValue, maxAvailableQuantity) : nextValue;
-                      update("quantity", String(Math.max(1, safeValue)));
-                    }} />
-                  {errors.quantity && <p className={errorClass}>{errors.quantity}</p>}
-                  {availability ? (
-                    <p className="mt-2 text-xs text-muted-foreground">
-                      {availability.availableCount} of {availability.totalStalls} stall(s) currently available in this zone.
-                    </p>
-                  ) : null}
+                <div className="md:col-span-2">
+                  <div className="grid gap-3 rounded-xl border border-border bg-muted/20 p-4 md:grid-cols-3">
+                    <div className="rounded-lg border border-border bg-background px-4 py-3">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Available</p>
+                      <p className="mt-1 text-xl font-semibold text-foreground">{availability?.availableCount ?? 0}</p>
+                    </div>
+                    <div className="rounded-lg border border-border bg-background px-4 py-3">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Selected</p>
+                      <p className="mt-1 text-xl font-semibold text-foreground">{quantityValue}</p>
+                    </div>
+                    <div className="rounded-lg border border-border bg-background px-4 py-3">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Amount</p>
+                      <p className="mt-1 text-xl font-semibold text-foreground">Rs {totalStallPrice.toLocaleString()}</p>
+                    </div>
+                  </div>
                 </div>
 
                 <div>
@@ -589,10 +610,10 @@ const StallBookingForm = () => {
               </div>
 
               <div>
-                <label className={labelClass}>Select Stall Number{quantityValue > 1 ? "s" : ""} *</label>
+                <label className={labelClass}>Stall View *</label>
                 {!canLoadAvailability ? (
                   <div className="rounded-lg border border-dashed border-border bg-muted/25 px-4 py-3 text-sm text-muted-foreground">
-                    Select event, category, and zone to view available stall numbers.
+                    Select event, category, and zone to open the stall view.
                   </div>
                 ) : availabilityError ? (
                   <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
@@ -600,29 +621,30 @@ const StallBookingForm = () => {
                   </div>
                 ) : availability && availability.availableStallNumbers.length > 0 ? (
                   <div className="space-y-3">
-                    <p className="text-xs text-muted-foreground">
-                      Choose {quantityValue} stall number{quantityValue > 1 ? "s" : ""}. Booked stalls are already hidden.
-                    </p>
-                    <div className="grid grid-cols-4 gap-2 sm:grid-cols-6 md:grid-cols-8">
+                    <div className="rounded-xl border border-border bg-background p-4">
+                      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                        <p className="text-sm font-semibold text-foreground">Select one or more stalls directly from the grid</p>
+                        <p className="text-xs text-muted-foreground">Booked stalls are already hidden.</p>
+                      </div>
+                      <div className="grid grid-cols-4 gap-2 sm:grid-cols-6 md:grid-cols-8">
                       {availability.availableStallNumbers.map((stallNumber) => {
                         const isSelected = selectedStallNumbers.includes(stallNumber);
-                        const limitReached = !isSelected && selectedStallNumbers.length >= quantityValue;
                         return (
                           <button
                             key={stallNumber}
                             type="button"
                             onClick={() => toggleStallNumber(stallNumber)}
-                            disabled={limitReached}
                             className={`rounded-lg border px-3 py-2 text-sm font-medium transition-all ${
                               isSelected
                                 ? "border-primary bg-primary text-primary-foreground"
                                 : "border-border bg-background text-foreground hover:border-primary/50"
-                            } disabled:cursor-not-allowed disabled:opacity-40`}
+                            }`}
                           >
                             {stallNumber}
                           </button>
                         );
                       })}
+                      </div>
                     </div>
                     {selectedStallNumbers.length > 0 ? (
                       <p className="text-xs text-muted-foreground">
@@ -683,7 +705,7 @@ const StallBookingForm = () => {
                   className={`${baseInputClass} font-semibold`}
                 />
                 <p className="mt-2 text-xs text-muted-foreground">
-                  This amount is calculated from the selected category, zone, and quantity.
+                  This amount is calculated from the selected category, zone, and chosen stalls.
                 </p>
               </div>
 
@@ -794,18 +816,35 @@ const StallBookingForm = () => {
 
               {/* Terms & Conditions Checkbox */}
               <div className="pt-6 border-t border-border">
-                <div className="flex items-start space-x-3 p-4 bg-muted/30 rounded-xl border">
+                <div className="space-y-3 rounded-xl border bg-muted/30 p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="pr-2">
+                      <p className="text-sm font-semibold text-foreground">Terms & Conditions</p>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        Review the booking terms without leaving this form.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setIsTermsDialogOpen(true)}
+                      className="shrink-0 rounded-lg border border-border bg-background px-3 py-2 text-sm font-semibold text-primary transition-colors hover:bg-muted"
+                    >
+                      Read Terms
+                    </button>
+                  </div>
+                  <div className="flex items-start space-x-3">
                   <Checkbox
                     id="terms"
                     checked={acceptedTerms}
-                    onCheckedChange={(checked) => setAcceptedTerms(Boolean(checked))}
+                    onCheckedChange={(checked) => {
+                      setAcceptedTerms(Boolean(checked));
+                      setErrors((current) => ({ ...current, terms: "" }));
+                    }}
                   />
                   <Label htmlFor="terms" className="text-sm leading-6 cursor-pointer flex-1 font-medium">
-                    I have read and agree to the{" "}
-                    <Link to="/terms" className="text-primary hover:underline font-semibold transition-colors">
-                      Terms & Conditions
-                    </Link>
+                    I have read and agree to the stall booking Terms & Conditions.
                   </Label>
+                  </div>
                 </div>
                 {errors.terms && <p className={errorClass}>{errors.terms}</p>}
               </div>
@@ -847,7 +886,7 @@ const StallBookingForm = () => {
                           zoneId: form.selectedZone,
                           categoryId: form.stallCategory,
                           stallSize: DEFAULT_STALL_SIZE,
-                          quantity: Number(form.quantity),
+                          quantity: selectedStallNumbers.length,
                           stallNumber: selectedStallNumbers.join(", "),
                           paymentMode: form.paymentMode,
                           acceptedTerms: true,
@@ -912,6 +951,68 @@ const StallBookingForm = () => {
           </div>
         </div>
       ) : null}
+      <Dialog open={isTermsDialogOpen} onOpenChange={setIsTermsDialogOpen}>
+        <DialogContent className="max-h-[90vh] max-w-3xl p-0">
+          <DialogHeader className="border-b border-border px-6 py-5">
+            <DialogTitle className="flex items-center gap-2 text-xl">
+              <FileText className="h-5 w-5 text-primary" />
+              Stall Booking Terms & Conditions
+            </DialogTitle>
+            <DialogDescription>
+              Read the important booking rules here without leaving the current step.
+            </DialogDescription>
+          </DialogHeader>
+          <ScrollArea className="max-h-[calc(90vh-160px)] px-6 py-5">
+            <div className="space-y-6">
+              <div className="rounded-xl border border-primary/15 bg-primary/5 p-4">
+                <p className="text-sm font-medium text-foreground">
+                  By submitting the booking, you confirm that the stall request, payment details, and selected preferences are accurate.
+                </p>
+              </div>
+              {bookingTerms.map(({ title, icon: Icon, accentClass, points }) => (
+                <section key={title} className="rounded-2xl border border-border bg-card p-5">
+                  <div className="mb-3 flex items-center gap-3">
+                    <div className="rounded-xl bg-muted p-2">
+                      <Icon className={`h-5 w-5 ${accentClass}`} />
+                    </div>
+                    <h3 className="text-base font-semibold text-foreground">{title}</h3>
+                  </div>
+                  <div className="space-y-2">
+                    {points.map((point) => (
+                      <p key={point} className="text-sm leading-6 text-muted-foreground">
+                        {point}
+                      </p>
+                    ))}
+                  </div>
+                </section>
+              ))}
+              <div className="rounded-xl border border-border bg-muted/20 p-4 text-sm text-muted-foreground">
+                For the full standalone page, you can still open <a href="/terms" target="_blank" rel="noreferrer" className="font-semibold text-primary hover:underline">Terms & Conditions</a> in a new tab without interrupting your form.
+              </div>
+            </div>
+          </ScrollArea>
+          <DialogFooter className="border-t border-border px-6 py-4">
+            <button
+              type="button"
+              onClick={() => setIsTermsDialogOpen(false)}
+              className="rounded-lg border border-border px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted"
+            >
+              Close
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setAcceptedTerms(true);
+                setErrors((current) => ({ ...current, terms: "" }));
+                setIsTermsDialogOpen(false);
+              }}
+              className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90"
+            >
+              Accept and Continue
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </section>
   );
 };

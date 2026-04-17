@@ -1,5 +1,6 @@
 import type { UserRole } from "./types";
 import logo from "@/assets/logo.png";
+import { getCurrentUser } from "@/lib/auth";
 
 type SidebarItem = { id: string; label: string; badge?: string };
 type SidebarSection = { title: string; items: ReadonlyArray<SidebarItem> };
@@ -17,7 +18,20 @@ const roleIdentity: Record<UserRole, { portalLabel: string; initials: string; na
 };
 
 export function Sidebar({ activeItem, onSelect, role, sections }: SidebarProps) {
-  const identity = roleIdentity[role];
+  const currentUser = getCurrentUser();
+  const fallbackIdentity = roleIdentity[role];
+  const computedInitials = (currentUser?.name || fallbackIdentity.name)
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() || "")
+    .join("") || fallbackIdentity.initials;
+  const identity = {
+    ...fallbackIdentity,
+    initials: computedInitials,
+    name: currentUser?.name || fallbackIdentity.name,
+    title: role === "Vendor" ? "Registered Vendor" : fallbackIdentity.title,
+  };
   return (
     <aside className="bg-admin-panel border-b border-[color:var(--border-soft)] lg:m-4 lg:min-h-[calc(100vh-2rem)] lg:w-80 lg:rounded-[32px] lg:border lg:border-b lg:border-r">
       <div className="border-b border-[color:var(--border-soft)] px-5 py-5 lg:flex lg:min-h-[116px] lg:items-center">

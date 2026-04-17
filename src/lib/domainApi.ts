@@ -60,6 +60,12 @@ export type BookingItem = {
   paymentAmount?: number;
   finalAmount?: number;
   paymentOption?: "full" | "partial";
+  paymentRecords?: Array<{
+    amount: number;
+    paymentRef?: string;
+    paymentMode?: string;
+    paidAt?: string;
+  }>;
   status: "pending" | "approved" | "rejected";
   allotment?: { zone?: string; stallNumber?: string };
   createdAt: string;
@@ -68,6 +74,7 @@ export type VendorItem = {
   _id: string;
   name: string;
   email: string;
+  mobile?: string;
   role: "vendor";
   status: "pending" | "approved" | "active";
   createdAt: string;
@@ -220,6 +227,18 @@ export async function getBookings(): Promise<BookingItem[]> {
 export async function allotBooking(id: string, data: { status: "pending" | "approved" | "rejected"; zone?: string; stallNumber?: string }) {
   const res = await apiFetch(`/api/bookings/${id}/allot`, { method: "PATCH", body: JSON.stringify(data) });
   return res.json();
+}
+
+export async function payBookingBalance(
+  id: string,
+  data: { paymentAmount: number; paymentRef?: string; paymentMode?: string },
+): Promise<BookingItem> {
+  const res = await apiFetch(`/api/bookings/${id}/pay-balance`, { method: "PATCH", body: JSON.stringify(data) });
+  const payload = await res.json();
+  if (!res.ok) {
+    throw new Error(payload?.message || "Failed to complete payment");
+  }
+  return payload;
 }
 
 export async function getVendors(): Promise<VendorItem[]> {

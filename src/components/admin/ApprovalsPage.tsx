@@ -36,6 +36,10 @@ export function ApprovalsPage() {
                 <span className="text-right text-sm text-[var(--text-soft)]">{vendor.email}</span>
               </div>
               <div className="flex items-start justify-between gap-4 py-1.5">
+                <span className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--text-muted)]">Mobile</span>
+                <span className="text-right text-sm text-[var(--text-soft)]">{vendor.mobile || "-"}</span>
+              </div>
+              <div className="flex items-start justify-between gap-4 py-1.5">
                 <span className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--text-muted)]">Status</span>
                 <span className="text-right text-sm text-[var(--text-soft)]">{vendor.status}</span>
               </div>
@@ -56,6 +60,7 @@ export function ApprovalsPage() {
               <tr>
                 <th className="px-4 py-3 font-semibold">Name</th>
                 <th className="px-4 py-3 font-semibold">Email</th>
+                <th className="px-4 py-3 font-semibold">Mobile</th>
                 <th className="px-4 py-3 font-semibold">Status</th>
                 <th className="px-4 py-3 font-semibold">Actions</th>
               </tr>
@@ -65,6 +70,7 @@ export function ApprovalsPage() {
                 <tr className="border-t border-[color:var(--border-soft)]" key={vendor._id}>
                   <td className="px-4 py-3 text-sm font-medium text-[var(--text-main)]">{vendor.name}</td>
                   <td className="px-4 py-3 text-sm text-[var(--text-soft)]">{vendor.email}</td>
+                  <td className="px-4 py-3 text-sm text-[var(--text-soft)]">{vendor.mobile || "-"}</td>
                   <td className="px-4 py-3 text-sm text-[var(--text-soft)]">{vendor.status}</td>
                   <td className="px-4 py-3 text-sm">
                     <div className="flex gap-2">

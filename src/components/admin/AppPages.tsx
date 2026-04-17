@@ -24,7 +24,7 @@ type QuickAccessItem = { id: PageId; label: string };
 
 const roleAllowedPages: Record<UserRole, ReadonlyArray<PageId>> = {
   Admin: ["dashboard","events","event-create","event-details","event-edit","categories","zones","stalls","bookings","booking-create","vendors","approvals","payments","reports","notifications","settings"],
-  Vendor: ["dashboard","bookings","vendors","payments","notifications","settings"],
+  Vendor: ["dashboard","bookings","vendors","payments","settings"],
 };
 
 export const pageMeta: Record<PageId, PageMeta> = {
@@ -56,7 +56,6 @@ const adminSidebarSections: ReadonlyArray<SidebarSection> = [
 const vendorSidebarSections: ReadonlyArray<SidebarSection> = [
   { title: "Main", items: [{ id: "dashboard", label: "Dashboard" },{ id: "bookings", label: "My Bookings" }] },
   { title: "Account", items: [{ id: "vendors", label: "My Profile" },{ id: "payments", label: "Payments" }] },
-  { title: "System", items: [{ id: "notifications", label: "Notifications" }] },
 ];
 
 const adminQuickAccess: ReadonlyArray<QuickAccessItem> = [
@@ -133,10 +132,12 @@ export function getPageHeaderOverview(page: PageId, role: UserRole): HeaderOverv
       // actions: ["All zones", "Assign stall"],
     },
     bookings: {
-      eyebrow: "Swadeshi Mela control room",
-      title: "Booking Operations",
-      description: "A central place to handle reservations, payment status, and assignment escalations.",
-      actions: ["Export bookings" ],
+      eyebrow: role === "Admin" ? "Swadeshi Mela control room" : "Vendor command center",
+      title: role === "Admin" ? "Booking Operations" : "My Bookings",
+      description: role === "Admin"
+        ? "A central place to handle reservations, payment status, and assignment escalations."
+        : "Review your booking progress, stall allotment, and latest status updates.",
+      actions: role === "Admin" ? ["Export bookings" ] : ["My bookings"],
     },
     "booking-create": {
       eyebrow: "Swadeshi Mela control room",
@@ -145,22 +146,26 @@ export function getPageHeaderOverview(page: PageId, role: UserRole): HeaderOverv
       actions: ["Back to bookings", "Create booking"],
     },
     vendors: {
-      eyebrow: "Swadeshi Mela control room",
-      title: "Vendor Dashboard & Application",
-      description: "Combines the vendor dashboard and application screen into one connected admin view.",
-      actions: ["Open approvals", "View public directory"],
+      eyebrow: role === "Admin" ? "Swadeshi Mela control room" : "Vendor command center",
+      title: role === "Admin" ? "Vendor Dashboard & Application" : "My Vendor Profile",
+      description: role === "Admin"
+        ? "Combines the vendor dashboard and application screen into one connected admin view."
+        : "View your vendor profile, linked booking details, and account status in one place.",
+      // actions: ["Open approvals", "View public directory"],
     },
     approvals: {
       eyebrow: "Swadeshi Mela control room",
       title: "Vendors",
       description: "Browse vendor accounts and update their approval status from one place.",
-      actions: ["Export list"],
+      // actions: ["Export list"],
     },
     payments: {
-      eyebrow: "Swadeshi Mela control room",
-      title: "Complete Payment - Stalls A-12 & A-13",
-      description: "Order summary, transaction history, and amount due for the connected vendor flow.",
-      actions: ["Download invoice", "Retry payment"],
+      eyebrow: role === "Admin" ? "Swadeshi Mela control room" : "Vendor command center",
+      title: role === "Admin" ? "Payment Flow" : "My Payments",
+      description: role === "Admin"
+        ? "Review dues, transaction history, and payment readiness for booked stalls."
+        : "Track paid amounts, pending balances, and payment references linked to your bookings.",
+      actions: role === "Admin" ? ["Download invoice", "Retry payment"] : ["Payment summary"],
     },
     reports: {
       eyebrow: "Swadeshi Mela control room",
@@ -172,13 +177,11 @@ export function getPageHeaderOverview(page: PageId, role: UserRole): HeaderOverv
       eyebrow: "Swadeshi Mela control room",
       title: "Notifications Center",
       description: "Compose reminders, review escalations, and manage operational communications.",
-      actions: ["Clear all", "Compose"],
     },
     settings: {
       eyebrow: "Swadeshi Mela control room",
       title: "Platform Settings",
       description: "Administrative defaults for approvals, pricing behavior, and portal visibility.",
-      actions: ["Save changes", "Reset defaults"],
     },
   };
 
@@ -199,7 +202,7 @@ export function renderPage(page: PageId, setPage: SetPage, role: UserRole) {
     case "categories": return <CategoryManagementPage />;
     case "zones": return <ZoneManagementPage />;
     case "stalls": return <StallMapPage />;
-    case "bookings": return <BookingOperationsPage setPage={setPage} />;
+    case "bookings": return <BookingOperationsPage setPage={setPage} userRole={role} />;
     case "booking-create": return <BookingCreatePage setPage={setPage} />;
     case "vendors": return <VendorHubPage setPage={setPage} />;
     case "approvals": return <ApprovalsPage />;

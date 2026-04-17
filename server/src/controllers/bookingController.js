@@ -16,6 +16,41 @@ function formatStallNumber(index) {
   return String(index).padStart(2, "0");
 }
 
+function normalizePaymentRecords(booking) {
+  const records = Array.isArray(booking?.paymentRecords) ? booking.paymentRecords.filter((record) => Number(record?.amount) > 0) : [];
+  if (records.length > 0) {
+    return records.map((record) => ({
+      amount: Number(record.amount) || 0,
+      paymentRef: record.paymentRef || "",
+      paymentMode: record.paymentMode || "mock",
+      paidAt: record.paidAt || booking.createdAt || new Date(),
+    }));
+  }
+
+  if (Number(booking?.paymentAmount) > 0) {
+    return [
+      {
+        amount: Number(booking.paymentAmount) || 0,
+        paymentRef: booking.paymentRef || "",
+        paymentMode: booking.paymentMode || "mock",
+        paidAt: booking.createdAt || new Date(),
+      },
+    ];
+  }
+
+  return [];
+}
+
+function applyPaymentSummary(booking, records) {
+  const totalPaid = records.reduce((sum, record) => sum + (Number(record.amount) || 0), 0);
+  booking.paymentRecords = records;
+  booking.paymentAmount = totalPaid;
+  booking.paymentRef = records.length ? records[records.length - 1].paymentRef || booking.paymentRef || "" : "";
+  booking.paymentMode = records.length ? records[records.length - 1].paymentMode || booking.paymentMode || "mock" : booking.paymentMode || "mock";
+  booking.paymentOption = totalPaid >= Number(booking.finalAmount || 0) ? "full" : "partial";
+  booking.status = totalPaid >= Number(booking.finalAmount || 0) ? "approved" : "pending";
+}
+
 async function getBookingAvailability(req, res) {
   const { eventId, zoneId, categoryId } = req.query || {};
 
@@ -203,12 +238,14 @@ async function createBooking(req, res) {
     user = await User.create({
       name: String(vendorName).trim(),
       email: normalizedEmail,
+      mobile: String(mobile).trim(),
       password: hashedPassword,
       role: "vendor",
       status: userStatus,
     });
   } else if (user.role === "vendor") {
     user.name = String(vendorName).trim() || user.name;
+    user.mobile = String(mobile).trim() || user.mobile;
     user.status = userStatus;
     await user.save();
   }
@@ -235,6 +272,14 @@ async function createBooking(req, res) {
     paymentAmount: paidAmount,
     finalAmount: totalAmount,
     paymentOption: normalizedPaymentOption,
+    paymentRecords: [
+      {
+        amount: paidAmount,
+        paymentRef: paymentRef || "",
+        paymentMode: paymentMode || "mock",
+        paidAt: new Date(),
+      },
+    ],
     status: bookingStatus,
     allotment: {
       zone: zone?._id ? String(zone._id) : "",
@@ -248,7 +293,11 @@ async function createBooking(req, res) {
 }
 
 async function listBookings(req, res) {
-  const bookings = await Booking.find()
+  const query = req.user?.role === "vendor"
+    ? { vendorEmail: String(req.user.email || "").toLowerCase() }
+    : {};
+
+  const bookings = await Booking.find(query)
     .populate("event", "title startDate venueName")
     .populate("zone", "zoneName")
     .populate("category", "name")
@@ -270,14 +319,60 @@ async function allotBooking(req, res) {
   booking.allotment.zone = zone || booking.allotment.zone || "";
   booking.allotment.stallNumber = stallNumber || booking.allotment.stallNumber || "";
   booking.allotment.updatedAt = new Date();
-  if (status === "approved" && Number(booking.finalAmount) > 0) {
-    booking.paymentAmount = Number(booking.finalAmount);
-    booking.paymentOption = "full";
-  }
   await booking.save();
 
   const populated = await Booking.findById(id).populate("event", "title startDate venueName").populate("zone", "zoneName").populate("category", "name");
   return res.json(populated);
 }
 
-module.exports = { createBooking, listBookings, allotBooking, getBookingAvailability };
+async function payBookingBalance(req, res) {
+  const { id } = req.params;
+  const { paymentAmount, paymentRef, paymentMode } = req.body || {};
+
+  const booking = await Booking.findById(id);
+  if (!booking) return res.status(404).json({ message: "Booking not found" });
+
+  if (req.user?.role === "vendor" && String(booking.vendorEmail || "").toLowerCase() !== String(req.user?.email || "").toLowerCase()) {
+    return res.status(403).json({ message: "Forbidden" });
+  }
+
+  if (booking.status === "rejected") {
+    return res.status(400).json({ message: "Rejected bookings cannot receive payments" });
+  }
+
+  const nextAmount = Number(paymentAmount) || 0;
+  if (nextAmount <= 0) {
+    return res.status(400).json({ message: "Payment amount must be greater than zero" });
+  }
+
+  const existingRecords = normalizePaymentRecords(booking);
+  const currentPaid = existingRecords.reduce((sum, record) => sum + (Number(record.amount) || 0), 0);
+  const finalAmount = Number(booking.finalAmount) || 0;
+  const remainingAmount = Math.max(finalAmount - currentPaid, 0);
+
+  if (remainingAmount <= 0) {
+    return res.status(400).json({ message: "This booking is already fully paid" });
+  }
+
+  if (nextAmount !== remainingAmount) {
+    return res.status(400).json({ message: `Remaining payment must be exactly Rs ${remainingAmount}` });
+  }
+
+  const nextRecords = [
+    ...existingRecords,
+    {
+      amount: nextAmount,
+      paymentRef: paymentRef ? String(paymentRef).trim() : "",
+      paymentMode: paymentMode ? String(paymentMode).trim() : booking.paymentMode || "mock",
+      paidAt: new Date(),
+    },
+  ];
+
+  applyPaymentSummary(booking, nextRecords);
+  await booking.save();
+
+  const populated = await Booking.findById(id).populate("event", "title startDate venueName").populate("zone", "zoneName").populate("category", "name");
+  return res.json(populated);
+}
+
+module.exports = { createBooking, listBookings, allotBooking, getBookingAvailability, payBookingBalance };

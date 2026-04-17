@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Card, ActionList, SimpleTable, StatsRow } from "./PageScaffold";
 import { getBookings, getEvents, type BookingItem, type EventItem } from "@/lib/domainApi";
 import type { UserRole } from "./types";
+import { getCurrentUser } from "@/lib/auth";
 
 type DashboardPageProps = { userRole: UserRole };
 
@@ -60,6 +61,7 @@ function getPaidAmount(booking: BookingItem): number {
 
 export function DashboardPage({ userRole }: DashboardPageProps) {
   const isAdmin = userRole === "Admin";
+  const currentUser = getCurrentUser();
 
   const [bookings, setBookings] = useState<BookingItem[]>([]);
   const [events, setEvents] = useState<EventItem[]>([]);
@@ -96,18 +98,33 @@ export function DashboardPage({ userRole }: DashboardPageProps) {
     ] as [string, string][];
   }, [bookings, events]);
 
-  const vendorStats: [string, string][] = [
-    ["Allocated Stalls", "2"],
-    ["Amount Paid", "Rs 19,200"],
-    ["Profile Completion", "82%"],
-  ];
+  const vendorStats = useMemo(() => {
+    const activeBookings = bookings.filter((booking) => booking.status !== "rejected");
+    const allocatedStalls = activeBookings.reduce((sum, booking) => sum + Number(booking.quantity || 1), 0);
+    const amountPaid = activeBookings.reduce((sum, booking) => sum + getPaidAmount(booking), 0);
+    const approvedBookings = activeBookings.filter((booking) => booking.status === "approved").length;
 
-  const vendorActivity = [
-    "Your Zone A stall reservation remains active until final balance payment.",
-    "Bank proof is still required to complete verification.",
-    "Public directory draft was refreshed with your product summary.",
-    "Organizer shared the vendor reporting schedule for opening day.",
-  ];
+    return [
+      ["Allocated Stalls", allocatedStalls.toLocaleString()],
+      ["Amount Paid", `Rs ${amountPaid.toLocaleString()}`],
+      ["Approved Bookings", approvedBookings.toLocaleString()],
+    ] as [string, string][];
+  }, [bookings]);
+
+  const vendorActivity = useMemo(() => {
+    if (loading) return ["Loading your vendor updates..."];
+    if (bookings.length === 0) {
+      return ["No bookings found yet. Your updates will appear here after your first stall booking."];
+    }
+
+    return bookings.slice(0, 4).map((booking) => {
+      const eventTitle = booking.event?.title || "your event";
+      const categoryName = booking.category?.name || "selected category";
+      const statusText = capitalize(booking.status);
+      const paymentText = `Rs ${getPaidAmount(booking).toLocaleString()}`;
+      return `${statusText} booking for ${eventTitle} in ${categoryName}. Paid so far: ${paymentText}.`;
+    });
+  }, [bookings, loading]);
 
   const recentActivity = useMemo(() => {
     if (loading) return ["Loading recent activity..."];
@@ -127,14 +144,28 @@ export function DashboardPage({ userRole }: DashboardPageProps) {
   const recentBookings = useMemo(() => {
     if (loading) return [];
 
-    return bookings.slice(0, 10).map((b) => [
-      b._id.slice(-6).toUpperCase(),
-      b.vendorName, 
-      b.category?.name || "-",
-      `Rs ${getPaidAmount(b).toLocaleString()}`,
-      capitalize(b.status),
-    ]);
-  }, [bookings, loading]);
+    return isAdmin
+      ? bookings.slice(0, 10).map((b) => [
+          b._id.slice(-6).toUpperCase(),
+          b.vendorName,
+          b.category?.name || "-",
+          `Rs ${getPaidAmount(b).toLocaleString()}`,
+          capitalize(b.status),
+        ])
+      : bookings.slice(0, 10).map((b) => [
+          b._id.slice(-6).toUpperCase(),
+          b.event?.title || "-",
+          b.zone?.zoneName || b.allotment?.zone || "-",
+          `Rs ${getPaidAmount(b).toLocaleString()}`,
+          capitalize(b.status),
+        ]);
+  }, [bookings, isAdmin, loading]);
+
+  const tableHeaders = isAdmin
+    ? ["Booking ID", "Vendor", "Category", "Paid Amount", "Status"]
+    : ["Booking ID", "Event", "Zone", "Paid Amount", "Status"];
+
+  const tableTitle = isAdmin ? "Recent Bookings" : `My Bookings${currentUser?.name ? ` for ${currentUser.name}` : ""}`;
 
   useEffect(() => {
     async function fetchData() {
@@ -166,8 +197,8 @@ export function DashboardPage({ userRole }: DashboardPageProps) {
 
       <div className="grid gap-6 xl:grid-cols-[1.4fr_0.95fr]">
         <SimpleTable
-          title="Recent Bookings"
-          headers={["Booking ID", "Vendor", "Category", "Paid Amount", "Status"]}
+          title={tableTitle}
+          headers={tableHeaders}
           rows={recentBookings}
         />
 

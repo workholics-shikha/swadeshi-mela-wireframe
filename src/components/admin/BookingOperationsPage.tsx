@@ -1,12 +1,16 @@
 import { useEffect, useMemo, useState } from "react";
 import { Card, InfoList } from "./PageScaffold";
-import type { SetPage } from "./types";
+import type { SetPage, UserRole } from "./types";
 import { getBookings, allotBooking, type BookingItem } from "@/lib/domainApi";
 
-export function BookingOperationsPage({ setPage }: { setPage: SetPage }) {
+export function BookingOperationsPage({ setPage, userRole }: { setPage: SetPage; userRole: UserRole }) {
+  const isAdmin = userRole === "Admin";
   const [bookings, setBookings] = useState<BookingItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedBooking, setSelectedBooking] = useState<BookingItem | null>(null);
+  const selectedBookingRemainingAmount = selectedBooking
+    ? Math.max(Number(selectedBooking.finalAmount || 0) - Number(selectedBooking.paymentAmount || 0), 0)
+    : 0;
 
   const loadData = () => {
     getBookings()
@@ -77,16 +81,20 @@ export function BookingOperationsPage({ setPage }: { setPage: SetPage }) {
     <div className="space-y-6">
       <section className="bg-admin-panel flex flex-wrap items-center justify-between gap-3 rounded-[24px] border border-[color:var(--border-soft)] p-4 sm:p-5">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--text-muted)]">Booking Operations</p>
-          <p className="mt-1 text-sm text-[var(--text-soft)]">Manage all booking requests, approvals, and assignments.</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--text-muted)]">{isAdmin ? "Booking Operations" : "My Bookings"}</p>
+          <p className="mt-1 text-sm text-[var(--text-soft)]">
+            {isAdmin ? "Manage all booking requests, approvals, and assignments." : "Track your booking status, allotment details, and payment progress."}
+          </p>
         </div>
-        <button
-          className="rounded-full bg-[linear-gradient(135deg,hsl(var(--saffron)),hsl(var(--maroon)))] px-5 py-2.5 text-sm font-semibold text-white"
-          onClick={() => setPage("booking-create")}
-          type="button"
-        >
-          Add booking
-        </button>
+        {isAdmin ? (
+          <button
+            className="rounded-full bg-[linear-gradient(135deg,hsl(var(--saffron)),hsl(var(--maroon)))] px-5 py-2.5 text-sm font-semibold text-white"
+            onClick={() => setPage("booking-create")}
+            type="button"
+          >
+            Add booking
+          </button>
+        ) : null}
       </section>
 
       {/* Booking Details Modal */}
@@ -104,6 +112,8 @@ export function BookingOperationsPage({ setPage }: { setPage: SetPage }) {
                   ["Vendor Email", selectedBooking.vendorEmail],
                   ["Mobile", selectedBooking.mobile],
                   ["Business Name", selectedBooking.businessName],
+                  ["Selected Zone", getBookingZoneLabel(selectedBooking)],
+                  ["Stall Number", selectedBooking.allotment.stallNumber || "Not allotted"],
                 ]} 
               />
               <InfoList 
@@ -112,37 +122,34 @@ export function BookingOperationsPage({ setPage }: { setPage: SetPage }) {
                   ["Category", selectedBooking.category?.name || "-"],
                   ["Quantity", String(selectedBooking.quantity || 1)],
                   ["Status", selectedBooking.status],
+                  ["Final Amount", `Rs ${Number(selectedBooking.finalAmount || 0).toLocaleString()}`],
                   ["Paid Amount", `Rs ${Number(selectedBooking.paymentAmount || 0).toLocaleString()}`],
+                  ["Remaining Amount", selectedBookingRemainingAmount > 0 ? `Rs ${selectedBookingRemainingAmount.toLocaleString()}` : "Fully paid"],
                 ]} 
               />
             </div>
-            
-            {selectedBooking.allotment && (
-              <InfoList 
-                items={[
-                  ["Selected Zone", getBookingZoneLabel(selectedBooking)],
-                  ["Stall Number", selectedBooking.allotment.stallNumber || "Not allotted"],
-                ]} 
-              />
-            )}
-
+             
             <div className="flex flex-wrap gap-3">
-              <button
-                className="rounded-full bg-[linear-gradient(135deg,hsl(var(--green-india)),hsl(var(--maroon)))] px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-50"
-                onClick={() => handleApprove(selectedBooking)}
-                disabled={loading || selectedBooking.status === "approved"}
-                type="button"
-              >
-                {selectedBooking.status === "approved" ? "Already Approved" : "Approve"}
-              </button>
-              <button
-                className="rounded-full border border-[rgba(136,38,63,0.18)] bg-white px-5 py-2.5 text-sm font-semibold text-[var(--accent)] disabled:opacity-50"
-                onClick={() => handleReject(selectedBooking._id)}
-                disabled={loading || selectedBooking.status === "rejected"}
-                type="button"
-              >
-                {selectedBooking.status === "rejected" ? "Already Rejected" : "Reject Booking"}
-              </button>
+              {isAdmin ? (
+                <>
+                  <button
+                    className="rounded-full bg-[linear-gradient(135deg,hsl(var(--green-india)),hsl(var(--maroon)))] px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-50"
+                    onClick={() => handleApprove(selectedBooking)}
+                    disabled={loading || selectedBooking.status === "approved"}
+                    type="button"
+                  >
+                    {selectedBooking.status === "approved" ? "Already Approved" : "Approve"}
+                  </button>
+                  <button
+                    className="rounded-full border border-[rgba(136,38,63,0.18)] bg-white px-5 py-2.5 text-sm font-semibold text-[var(--accent)] disabled:opacity-50"
+                    onClick={() => handleReject(selectedBooking._id)}
+                    disabled={loading || selectedBooking.status === "rejected"}
+                    type="button"
+                  >
+                    {selectedBooking.status === "rejected" ? "Already Rejected" : "Reject Booking"}
+                  </button>
+                </>
+              ) : null}
               <button
                 className="rounded-full border border-[color:var(--border-soft)] bg-white/70 px-5 py-2.5 text-sm font-semibold text-[var(--text-soft)]"
                 onClick={() => setSelectedBooking(null)}
@@ -193,7 +200,7 @@ export function BookingOperationsPage({ setPage }: { setPage: SetPage }) {
                 >
                   View Details
                 </button>
-                {b.status === "pending" && (
+                {isAdmin && b.status === "pending" && (
                   <>
                     <button
                       className="rounded-full border border-[rgba(79,133,78,0.35)] bg-white px-4 py-2 text-sm font-semibold text-[var(--green-india)] disabled:opacity-50"
@@ -208,9 +215,9 @@ export function BookingOperationsPage({ setPage }: { setPage: SetPage }) {
                       onClick={() => handleReject(b._id)}
                       disabled={loading}
                       type="button"
-                    >
-                      Reject
-                    </button>
+                      >
+                        Reject
+                      </button>
                   </>
                 )}
               </div>
@@ -250,7 +257,7 @@ export function BookingOperationsPage({ setPage }: { setPage: SetPage }) {
                       >
                         View
                       </button>
-                      {b.status === "pending" && (
+                      {isAdmin && b.status === "pending" && (
                         <>
                           <button
                             className="rounded-full border border-[rgba(79,133,78,0.35)] bg-white px-4 py-2 text-sm font-semibold text-[var(--green-india)] disabled:opacity-50"

@@ -27,6 +27,14 @@ const bookingSchema = new mongoose.Schema(
       enum: ["full", "partial"],
       default: "full",
     },
+    paymentRecords: [
+      {
+        amount: { type: Number, min: 0, required: true },
+        paymentRef: { type: String, trim: true, default: "" },
+        paymentMode: { type: String, trim: true, default: "mock" },
+        paidAt: { type: Date, default: Date.now },
+      },
+    ],
     status: {
       type: String,
       enum: ["pending", "approved", "rejected"],

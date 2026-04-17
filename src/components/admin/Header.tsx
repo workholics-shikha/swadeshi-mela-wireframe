@@ -4,6 +4,7 @@ import { clearAuth } from "@/lib/auth";
 type HeaderProps = {
   title: string;
   description: string;
+  onAction?: (action: string) => void;
   overview?: {
     eyebrow?: string;
     title?: string;
@@ -12,7 +13,7 @@ type HeaderProps = {
   };
 };
 
-export function Header({ title, description, overview }: HeaderProps) {
+export function Header({ title, description, overview, onAction }: HeaderProps) {
   const navigate = useNavigate();
   const displayEyebrow = overview?.eyebrow ?? "Festival operations console";
   const displayTitle = overview?.title ?? title;
@@ -41,6 +42,7 @@ export function Header({ title, description, overview }: HeaderProps) {
                     : "border border-[color:var(--border-soft)] bg-white/70 text-[var(--text-soft)]"
                 }`}
                 key={action}
+                onClick={() => onAction?.(action)}
                 type="button"
               >
                 {action}
