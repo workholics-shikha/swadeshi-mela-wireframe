@@ -14,6 +14,7 @@ export function CategoryManagementPage() {
     name: "",
     status: "active",
   });
+  const [nameError, setNameError] = useState("");
   const [highlightForm, setHighlightForm] = useState(false);
   const formCardRef = useRef<HTMLDivElement | null>(null);
 
@@ -43,12 +44,14 @@ export function CategoryManagementPage() {
 
   const startCreate = () => {
     setDraft({ id: "", name: "", status: "active" });
+    setNameError("");
     setDraftType("stall");
     setDraftStatus("active");
     triggerFormHighlight();
   };
   const startEdit = (category: Category) => {
     setDraft({ id: category._id, name: category.name, status: category.status });
+    setNameError("");
     setDraftType(category.type);
     setDraftStatus(category.status);
     triggerFormHighlight();
@@ -61,7 +64,10 @@ export function CategoryManagementPage() {
   }, [highlightForm]);
 
   const onSave = async () => {
-    if (!draft.name.trim()) return;
+    if (!draft.name.trim()) {
+      setNameError("Category name is required");
+      return;
+    }
     if (!draft.id) await createCategory({ name: draft.name.trim(), type: draftType, status: draftStatus });
     else await updateCategory(draft.id, { name: draft.name.trim(), type: draftType, status: draftStatus });
     await load();
@@ -146,7 +152,11 @@ export function CategoryManagementPage() {
           <div className="space-y-4">
             <div>
               <p className="mb-2 text-sm font-semibold text-[var(--text-main)]">Category name</p>
-              <Input autoFocus={highlightForm} className={`h-12 rounded-[16px] bg-white text-[var(--text-main)] transition-all duration-500 ${highlightForm ? "border-[color:rgba(211,140,34,0.55)] ring-4 ring-[rgba(211,140,34,0.16)]" : "border-[color:var(--border-soft)]"}`} onChange={(e) => setDraft((c) => ({ ...c, name: e.target.value }))} placeholder="Enter category name" value={draft.name} />
+              <Input autoFocus={highlightForm} className={`h-12 rounded-[16px] bg-white text-[var(--text-main)] transition-all duration-500 ${nameError ? "border-red-400 focus-visible:ring-red-100" : highlightForm ? "border-[color:rgba(211,140,34,0.55)] ring-4 ring-[rgba(211,140,34,0.16)]" : "border-[color:var(--border-soft)]"}`} onChange={(e) => {
+                setDraft((c) => ({ ...c, name: e.target.value }));
+                if (nameError && e.target.value.trim()) setNameError("");
+              }} placeholder="Enter category name" value={draft.name} />
+              {nameError ? <p className="mt-1 text-xs text-red-500">{nameError}</p> : null}
             </div>
             <div>
               <p className="mb-2 text-sm font-semibold text-[var(--text-main)]">Category type</p>

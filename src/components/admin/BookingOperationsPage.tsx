@@ -2,10 +2,14 @@ import { useEffect, useMemo, useState } from "react";
 import { Card, InfoList } from "./PageScaffold";
 import type { SetPage, UserRole } from "./types";
 import { getBookings, allotBooking, payBookingBalance, type BookingItem } from "@/lib/domainApi";
+import { buildApiUrl } from "@/lib/apiConfig";
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 
 export function BookingOperationsPage({ setPage, userRole }: { setPage: SetPage; userRole: UserRole }) {
   const isAdmin = userRole === "Admin";
+  const pageSize = 10;
   const [bookings, setBookings] = useState<BookingItem[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
   const [loading, setLoading] = useState(false);
   const [selectedBooking, setSelectedBooking] = useState<BookingItem | null>(null);
   const [paymentDraft, setPaymentDraft] = useState({ amount: "", paymentRef: "", paymentType: "part-payment" });
@@ -23,7 +27,25 @@ export function BookingOperationsPage({ setPage, userRole }: { setPage: SetPage;
     loadData();
   }, []);
 
+  const validateBookingZoneCategory = (booking: BookingItem) => {
+    const hasCategory = Boolean(booking.category?._id || booking.category?.name);
+    const hasZone = Boolean(booking.zone?._id || booking.zone?.zoneName || booking.allotment?.zone);
+
+    if (!hasCategory) {
+      alert("Category is required before proceeding.");
+      return false;
+    }
+
+    if (!hasZone) {
+      alert("Zone is required before proceeding.");
+      return false;
+    }
+
+    return true;
+  };
+
   const handleApprove = async (booking: BookingItem) => {
+    if (!validateBookingZoneCategory(booking)) return;
     if (!window.confirm("Are you sure you want to approve this booking?")) return;
 
     setLoading(true);
@@ -96,18 +118,16 @@ export function BookingOperationsPage({ setPage, userRole }: { setPage: SetPage;
     return booking.zone?.zoneName || booking.allotment?.zone || "Not selected";
   };
 
-  const rows = useMemo(
-    () =>
-      bookings.map((b) => [
-        b._id.slice(-6).toUpperCase(),
-        `${b.vendorName} (${b.vendorEmail})`,
-        b.event?.title || "-",
-        b.category?.name || "-",
-        String(b.quantity || 1),
-        b.status,
-      ]),
-    [bookings],
-  );
+  const totalPages = Math.max(1, Math.ceil(bookings.length / pageSize));
+  const safeCurrentPage = Math.min(currentPage, totalPages);
+  const paginatedBookings = useMemo(() => {
+    const startIndex = (safeCurrentPage - 1) * pageSize;
+    return bookings.slice(startIndex, startIndex + pageSize);
+  }, [bookings, pageSize, safeCurrentPage]);
+  const receiptUrl = selectedBooking?.receiptImage
+    ? (selectedBooking.receiptImage.startsWith("http") ? selectedBooking.receiptImage : buildApiUrl(selectedBooking.receiptImage))
+    : "";
+  const isReceiptPdf = Boolean(receiptUrl && receiptUrl.toLowerCase().endsWith(".pdf"));
 
   return (
     <div className="space-y-6">
@@ -159,6 +179,36 @@ export function BookingOperationsPage({ setPage, userRole }: { setPage: SetPage;
                 ]}
               />
             </div>
+
+            {receiptUrl ? (
+              <div className="rounded-[20px] border border-[color:var(--border-soft)] bg-white/80 p-4">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-semibold text-[var(--text-main)]">Payment Receipt</p>
+                    <p className="mt-1 text-xs text-[var(--text-soft)]">Uploaded proof attached with this booking.</p>
+                  </div>
+                  <a
+                    className="rounded-full bg-[linear-gradient(135deg,hsl(var(--saffron)),hsl(var(--maroon)))] px-4 py-2 text-sm font-semibold text-white"
+                    href={receiptUrl}
+                    rel="noreferrer"
+                    target="_blank"
+                  >
+                    Open Receipt
+                  </a>
+                </div>
+                <div className="mt-4 overflow-hidden rounded-[18px] border border-[color:var(--border-soft)] bg-[rgba(255,255,255,0.65)]">
+                  {isReceiptPdf ? (
+                    <iframe className="h-[420px] w-full" src={receiptUrl} title="Booking receipt preview" />
+                  ) : (
+                    <img
+                      alt="Booking receipt"
+                      className="max-h-[420px] w-full object-contain bg-white"
+                      src={receiptUrl}
+                    />
+                  )}
+                </div>
+              </div>
+            ) : null}
 
             {isAdmin && selectedBooking.status !== "rejected" && selectedBookingRemainingAmount > 0 ? (
               <div className="rounded-[20px] border border-[color:var(--border-soft)] bg-white/70 p-4">
@@ -232,7 +282,7 @@ export function BookingOperationsPage({ setPage, userRole }: { setPage: SetPage;
 
         {/* Mobile View */}
         <div className="grid gap-3 p-4 md:hidden">
-          {bookings.map((b) => (
+          {paginatedBookings.map((b) => (
             <div className="rounded-[18px] border border-[color:var(--border-soft)] bg-white/70 p-4" key={b._id}>
               <div className="flex items-start justify-between gap-4 py-1.5">
                 <span className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--text-muted)]">Booking ID</span>
@@ -305,7 +355,7 @@ export function BookingOperationsPage({ setPage, userRole }: { setPage: SetPage;
               </tr>
             </thead>
             <tbody>
-              {bookings.map((b) => (
+              {paginatedBookings.map((b) => (
                 <tr className="border-t border-[color:var(--border-soft)]" key={b._id}>
                   <td className="px-4 py-3 text-sm font-medium text-[var(--text-main)]">
                     {b._id.slice(-6).toUpperCase()}</td>
@@ -349,6 +399,50 @@ export function BookingOperationsPage({ setPage, userRole }: { setPage: SetPage;
               ))}
             </tbody>
           </table>
+        </div>
+        <div className="flex flex-col gap-3 border-t border-[color:var(--border-soft)] px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+          <p className="text-sm text-[var(--text-soft)]">
+            Showing {bookings.length ? (safeCurrentPage - 1) * pageSize + 1 : 0}-{Math.min(safeCurrentPage * pageSize, bookings.length)} of {bookings.length} bookings
+          </p>
+          <Pagination className="mx-0 w-auto justify-start sm:justify-end">
+            <PaginationContent>
+              <PaginationItem>
+                <PaginationPrevious
+                  className={`rounded-full border border-[color:var(--border-soft)] bg-white/70 ${safeCurrentPage === 1 ? "pointer-events-none opacity-50" : ""}`}
+                  href="#"
+                  onClick={(event) => {
+                    event.preventDefault();
+                    setCurrentPage((page) => Math.max(1, page - 1));
+                  }}
+                />
+              </PaginationItem>
+              {Array.from({ length: totalPages }, (_, index) => index + 1).map((page) => (
+                <PaginationItem key={page}>
+                  <PaginationLink
+                    className="rounded-full border border-[color:var(--border-soft)] bg-white/70 text-[var(--text-soft)]"
+                    href="#"
+                    isActive={page === safeCurrentPage}
+                    onClick={(event) => {
+                      event.preventDefault();
+                      setCurrentPage(page);
+                    }}
+                  >
+                    {page}
+                  </PaginationLink>
+                </PaginationItem>
+              ))}
+              <PaginationItem>
+                <PaginationNext
+                  className={`rounded-full border border-[color:var(--border-soft)] bg-white/70 ${safeCurrentPage === totalPages ? "pointer-events-none opacity-50" : ""}`}
+                  href="#"
+                  onClick={(event) => {
+                    event.preventDefault();
+                    setCurrentPage((page) => Math.min(totalPages, page + 1));
+                  }}
+                />
+              </PaginationItem>
+            </PaginationContent>
+          </Pagination>
         </div>
       </section>
     </div>

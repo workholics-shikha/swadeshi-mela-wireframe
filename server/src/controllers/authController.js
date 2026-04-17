@@ -23,6 +23,10 @@ async function login(req, res) {
     return res.status(401).json({ message: "Invalid credentials" });
   }
 
+  if (user.role === "vendor" && !["approved", "active"].includes(user.status)) {
+    return res.status(403).json({ message: "Your vendor account is not approved yet." });
+  }
+
   const token = signToken(
     { sub: user._id.toString(), role: user.role, email: user.email },
     { secret: req.app.get("jwtSecret"), expiresIn: req.app.get("jwtExpiresIn") },

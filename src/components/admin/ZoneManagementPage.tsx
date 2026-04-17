@@ -20,6 +20,7 @@ export function ZoneManagementPage() {
   const [query, setQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [draft, setDraft] = useState<ZoneDraft>(defaultDraft);
+  const [zoneNameError, setZoneNameError] = useState("");
   const [highlightForm, setHighlightForm] = useState(false);
   const formCardRef = useRef<HTMLDivElement | null>(null);
 
@@ -52,10 +53,12 @@ export function ZoneManagementPage() {
 
   const startCreate = () => {
     setDraft(defaultDraft);
+    setZoneNameError("");
     triggerFormHighlight();
   };
   const startEdit = (zone: ZoneItem) =>
     {
+      setZoneNameError("");
       setDraft({
         id: zone._id,
         zoneName: zone.zoneName,
@@ -72,7 +75,10 @@ export function ZoneManagementPage() {
   }, [highlightForm]);
 
   const onSave = async () => {
-    if (!draft.zoneName.trim()) return;
+    if (!draft.zoneName.trim()) {
+      setZoneNameError("Zone name is required");
+      return;
+    }
     const payload = {
       zoneName: draft.zoneName.trim(),
       description: draft.description.trim(),
@@ -174,7 +180,11 @@ export function ZoneManagementPage() {
           <div className="space-y-4">
             <div>
               <p className="mb-2 text-sm font-semibold text-[var(--text-main)]">Zone name</p>
-              <Input autoFocus={highlightForm} className={`h-12 rounded-[16px] bg-white text-[var(--text-main)] transition-all duration-500 ${highlightForm ? "border-[color:rgba(211,140,34,0.55)] ring-4 ring-[rgba(211,140,34,0.16)]" : "border-[color:var(--border-soft)]"}`} onChange={(e) => setDraft((c) => ({ ...c, zoneName: e.target.value }))} placeholder="Enter zone name" value={draft.zoneName} />
+              <Input autoFocus={highlightForm} className={`h-12 rounded-[16px] bg-white text-[var(--text-main)] transition-all duration-500 ${zoneNameError ? "border-red-400 focus-visible:ring-red-100" : highlightForm ? "border-[color:rgba(211,140,34,0.55)] ring-4 ring-[rgba(211,140,34,0.16)]" : "border-[color:var(--border-soft)]"}`} onChange={(e) => {
+                setDraft((c) => ({ ...c, zoneName: e.target.value }));
+                if (zoneNameError && e.target.value.trim()) setZoneNameError("");
+              }} placeholder="Enter zone name" value={draft.zoneName} />
+              {zoneNameError ? <p className="mt-1 text-xs text-red-500">{zoneNameError}</p> : null}
             </div>
             <div>
               <p className="mb-2 text-sm font-semibold text-[var(--text-main)]">Description (optional)</p>
