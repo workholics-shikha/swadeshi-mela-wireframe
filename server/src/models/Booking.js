@@ -20,6 +20,7 @@ const bookingSchema = new mongoose.Schema(
     quantity: { type: Number, required: true, min: 1, default: 1 },
     paymentMode: { type: String, default: "mock" },
     paymentRef: { type: String, default: "" },
+    receiptImage: { type: String, default: "" },
     paymentAmount: { type: Number, min: 0, default: 0 },
     finalAmount: { type: Number, min: 0, default: 0 },
     paymentOption: {
@@ -29,9 +30,11 @@ const bookingSchema = new mongoose.Schema(
     },
     paymentRecords: [
       {
+        installmentNumber: { type: Number, min: 1, default: 1 },
         amount: { type: Number, min: 0, required: true },
         paymentRef: { type: String, trim: true, default: "" },
         paymentMode: { type: String, trim: true, default: "mock" },
+        paymentType: { type: String, trim: true, default: "part-payment" },
         paidAt: { type: Date, default: Date.now },
       },
     ],

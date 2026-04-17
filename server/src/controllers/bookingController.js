@@ -19,10 +19,12 @@ function formatStallNumber(index) {
 function normalizePaymentRecords(booking) {
   const records = Array.isArray(booking?.paymentRecords) ? booking.paymentRecords.filter((record) => Number(record?.amount) > 0) : [];
   if (records.length > 0) {
-    return records.map((record) => ({
+    return records.map((record, index) => ({
+      installmentNumber: Number(record.installmentNumber) || index + 1,
       amount: Number(record.amount) || 0,
       paymentRef: record.paymentRef || "",
       paymentMode: record.paymentMode || "mock",
+      paymentType: record.paymentType || "part-payment",
       paidAt: record.paidAt || booking.createdAt || new Date(),
     }));
   }
@@ -30,9 +32,11 @@ function normalizePaymentRecords(booking) {
   if (Number(booking?.paymentAmount) > 0) {
     return [
       {
+        installmentNumber: 1,
         amount: Number(booking.paymentAmount) || 0,
         paymentRef: booking.paymentRef || "",
         paymentMode: booking.paymentMode || "mock",
+        paymentType: "part-payment",
         paidAt: booking.createdAt || new Date(),
       },
     ];
@@ -48,7 +52,9 @@ function applyPaymentSummary(booking, records) {
   booking.paymentRef = records.length ? records[records.length - 1].paymentRef || booking.paymentRef || "" : "";
   booking.paymentMode = records.length ? records[records.length - 1].paymentMode || booking.paymentMode || "mock" : booking.paymentMode || "mock";
   booking.paymentOption = totalPaid >= Number(booking.finalAmount || 0) ? "full" : "partial";
-  booking.status = totalPaid >= Number(booking.finalAmount || 0) ? "approved" : "pending";
+  if (booking.status !== "rejected") {
+    booking.status = "pending";
+  }
 }
 
 async function getBookingAvailability(req, res) {
@@ -130,6 +136,7 @@ async function createBooking(req, res) {
     finalAmount,
     paymentOption,
   } = req.body || {};
+  const receiptImage = req.file?.filename ? `/uploads/bookings/${req.file.filename}` : "";
 
   if (!vendorName || !vendorEmail || !mobile || !businessName || !eventId || !categoryId || !stallSize) {
     return res.status(400).json({ message: "Missing required booking fields" });
@@ -229,8 +236,8 @@ async function createBooking(req, res) {
     return res.status(400).json({ message: "Use full payment option when paying the full amount" });
   }
 
-  const bookingStatus = paidAmount >= totalAmount ? "approved" : "pending";
-  const userStatus = bookingStatus === "approved" ? "approved" : "pending";
+  const bookingStatus = "pending";
+  const userStatus = "pending";
 
   let user = await User.findOne({ email: normalizedEmail });
   if (!user) {
@@ -269,14 +276,17 @@ async function createBooking(req, res) {
     quantity: requestedQuantity,
     paymentMode: paymentMode || "mock",
     paymentRef: paymentRef || "",
+    receiptImage,
     paymentAmount: paidAmount,
     finalAmount: totalAmount,
     paymentOption: normalizedPaymentOption,
     paymentRecords: [
       {
         amount: paidAmount,
+        installmentNumber: 1,
         paymentRef: paymentRef || "",
         paymentMode: paymentMode || "mock",
+        paymentType: "part-payment",
         paidAt: new Date(),
       },
     ],
@@ -327,7 +337,7 @@ async function allotBooking(req, res) {
 
 async function payBookingBalance(req, res) {
   const { id } = req.params;
-  const { paymentAmount, paymentRef, paymentMode } = req.body || {};
+  const { paymentAmount, paymentRef, paymentMode, paymentType } = req.body || {};
 
   const booking = await Booking.findById(id);
   if (!booking) return res.status(404).json({ message: "Booking not found" });
@@ -354,16 +364,18 @@ async function payBookingBalance(req, res) {
     return res.status(400).json({ message: "This booking is already fully paid" });
   }
 
-  if (nextAmount !== remainingAmount) {
-    return res.status(400).json({ message: `Remaining payment must be exactly Rs ${remainingAmount}` });
+  if (nextAmount > remainingAmount) {
+    return res.status(400).json({ message: `Payment amount cannot exceed remaining Rs ${remainingAmount}` });
   }
 
   const nextRecords = [
     ...existingRecords,
     {
+      installmentNumber: existingRecords.length + 1,
       amount: nextAmount,
       paymentRef: paymentRef ? String(paymentRef).trim() : "",
       paymentMode: paymentMode ? String(paymentMode).trim() : booking.paymentMode || "mock",
+      paymentType: paymentType ? String(paymentType).trim() : "part-payment",
       paidAt: new Date(),
     },
   ];

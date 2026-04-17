@@ -12,9 +12,11 @@ function getPaymentRecords(booking: BookingItem) {
   if (Number(booking.paymentAmount || 0) > 0) {
     return [
       {
+        installmentNumber: 1,
         amount: Number(booking.paymentAmount || 0),
         paymentRef: booking.paymentRef || "",
         paymentMode: booking.paymentMode || "mock",
+        paymentType: "part-payment",
         paidAt: booking.createdAt,
       },
     ];
@@ -26,9 +28,10 @@ function getPaymentRecords(booking: BookingItem) {
 export function PaymentsPage() {
   const currentUser = getCurrentUser();
   const isVendor = currentUser?.role === "vendor";
+  const isAdmin = currentUser?.role === "admin";
   const [bookings, setBookings] = useState<BookingItem[]>([]);
   const [submittingId, setSubmittingId] = useState<string | null>(null);
-  const [paymentDrafts, setPaymentDrafts] = useState<Record<string, { amount: string; paymentRef: string }>>({});
+  const [paymentDrafts, setPaymentDrafts] = useState<Record<string, { amount: string; paymentRef: string; paymentType: string }>>({});
 
   const loadBookings = () => {
     getBookings()
@@ -67,27 +70,28 @@ export function PaymentsPage() {
     }
 
     return records.map((record, index) => [
-      record.paymentRef || `${booking._id.slice(-6).toUpperCase()}-${index + 1}`,
+      `Payment ${record.installmentNumber || index + 1}`,
       booking.event?.title || "-",
       booking.allotment?.stallNumber || `${booking.quantity || 1} stall(s)`,
       `Rs ${Number(record.amount || 0).toLocaleString()}`,
-      record.paidAt ? new Date(record.paidAt).toLocaleDateString("en-IN") : booking.status,
+      record.paidAt ? `${new Date(record.paidAt).toLocaleDateString("en-IN")} • ${record.paymentType || "part-payment"}` : booking.status,
     ]);
   });
 
-  const handleDraftChange = (bookingId: string, field: "amount" | "paymentRef", value: string) => {
+  const handleDraftChange = (bookingId: string, field: "amount" | "paymentRef" | "paymentType", value: string) => {
     setPaymentDrafts((current) => ({
       ...current,
       [bookingId]: {
         amount: current[bookingId]?.amount || "",
         paymentRef: current[bookingId]?.paymentRef || "",
+        paymentType: current[bookingId]?.paymentType || "part-payment",
         [field]: value,
       },
     }));
   };
 
-  const handlePayRemaining = async (booking: BookingItem) => {
-    const draft = paymentDrafts[booking._id] || { amount: "", paymentRef: "" };
+  const handleCollectInstallment = async (booking: BookingItem) => {
+    const draft = paymentDrafts[booking._id] || { amount: "", paymentRef: "", paymentType: "part-payment" };
     const paymentAmount = Number(draft.amount) || 0;
     const remainingAmount = Math.max(Number(booking.finalAmount || 0) - Number(booking.paymentAmount || 0), 0);
 
@@ -96,8 +100,8 @@ export function PaymentsPage() {
       return;
     }
 
-    if (paymentAmount !== remainingAmount) {
-      toast.error(`Remaining payment must be Rs ${remainingAmount.toLocaleString()}`);
+    if (paymentAmount > remainingAmount) {
+      toast.error(`Payment cannot exceed Rs ${remainingAmount.toLocaleString()}`);
       return;
     }
 
@@ -106,12 +110,13 @@ export function PaymentsPage() {
       await payBookingBalance(booking._id, {
         paymentAmount,
         paymentRef: draft.paymentRef.trim(),
-        paymentMode: "vendor-portal",
+        paymentMode: isAdmin ? "admin-collection" : "vendor-portal",
+        paymentType: draft.paymentType || "part-payment",
       });
-      toast.success("Remaining payment received");
+      toast.success("Part payment saved");
       setPaymentDrafts((current) => ({
         ...current,
-        [booking._id]: { amount: "", paymentRef: "" },
+        [booking._id]: { amount: "", paymentRef: "", paymentType: "part-payment" },
       }));
       loadBookings();
     } catch (error) {
@@ -130,13 +135,13 @@ export function PaymentsPage() {
         <SimpleTable title="Payment history" headers={["Txn ID","Event","Stall","Amount","Status"]} rows={paymentRows} />
       </div>
 
-      {isVendor ? (
-        <Card title="Pay Remaining Balance" subtitle="Complete pending booking balances directly from the vendor portal.">
+      {isVendor || isAdmin ? (
+        <Card title={isAdmin ? "Collect Part Payment" : "Pay Part Payment"} subtitle="Record part payments and keep them synced in booking history.">
           <div className="space-y-4">
             {bookings.length ? (
               bookings.map((booking) => {
                 const remainingAmount = Math.max(Number(booking.finalAmount || 0) - Number(booking.paymentAmount || 0), 0);
-                const draft = paymentDrafts[booking._id] || { amount: remainingAmount ? String(remainingAmount) : "", paymentRef: "" };
+                const draft = paymentDrafts[booking._id] || { amount: "", paymentRef: "", paymentType: "part-payment" };
                 const disabled = remainingAmount <= 0 || booking.status === "rejected";
 
                 return (
@@ -157,14 +162,14 @@ export function PaymentsPage() {
 
                     <div className="mt-4 grid gap-4 md:grid-cols-[1fr_1fr_auto]">
                       <div>
-                        <label className="mb-2 block text-sm font-semibold text-[var(--text-main)]">Amount</label>
+                        <label className="mb-2 block text-sm font-semibold text-[var(--text-main)]">Part Payment Amount</label>
                         <input
                           className="w-full rounded-[16px] border border-[color:var(--border-soft)] bg-white px-4 py-3 text-sm text-[var(--text-main)]"
                           disabled={disabled || submittingId === booking._id}
                           max={remainingAmount || undefined}
                           min={0}
                           onChange={(event) => handleDraftChange(booking._id, "amount", event.target.value)}
-                          placeholder="Remaining balance"
+                          placeholder="Enter amount"
                           type="number"
                           value={draft.amount}
                         />
@@ -184,10 +189,10 @@ export function PaymentsPage() {
                         <button
                           className="w-full rounded-full bg-[linear-gradient(135deg,hsl(var(--saffron)),hsl(var(--maroon)))] px-5 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
                           disabled={disabled || submittingId === booking._id}
-                          onClick={() => handlePayRemaining(booking)}
+                          onClick={() => handleCollectInstallment(booking)}
                           type="button"
                         >
-                          {remainingAmount <= 0 ? "Fully paid" : booking.status === "rejected" ? "Rejected" : submittingId === booking._id ? "Processing..." : "Pay remaining"}
+                          {remainingAmount <= 0 ? "Fully paid" : booking.status === "rejected" ? "Rejected" : submittingId === booking._id ? "Processing..." : isAdmin ? "Collect payment" : "Pay part payment"}
                         </button>
                       </div>
                     </div>

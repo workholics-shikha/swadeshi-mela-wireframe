@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState, useCallback } from "react";
-import { Check, ArrowRight, ArrowLeft, Receipt, Copy, Maximize2, X, FileText, Shield, AlertCircle } from "lucide-react";
+import { useEffect, useMemo, useState, useCallback, useRef } from "react";
+import { Check, ArrowRight, ArrowLeft, Receipt, Copy, Maximize2, X, FileText, Shield, AlertCircle, Plus, Minus } from "lucide-react";
 import { createBooking, getBookingAvailability, getCategories, getEvents, getZones, type BookingAvailability, type Category, type EventItem, type ZoneItem } from "@/lib/domainApi";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
@@ -61,9 +61,15 @@ const StallBookingForm = () => {
   const [isTermsDialogOpen, setIsTermsDialogOpen] = useState(false);
   const [paymentOption, setPaymentOption] = useState<"full" | "partial">("full");
   const [paymentAmount, setPaymentAmount] = useState("");
+  const [receiptImage, setReceiptImage] = useState<File | null>(null);
   const [availability, setAvailability] = useState<BookingAvailability | null>(null);
   const [availabilityError, setAvailabilityError] = useState("");
-  const [selectedStallNumbers, setSelectedStallNumbers] = useState<string[]>([]);
+  const [selectedStallsByOption, setSelectedStallsByOption] = useState<Record<string, string[]>>({});
+  const [layoutZoom, setLayoutZoom] = useState(1);
+  const [layoutOffset, setLayoutOffset] = useState({ x: 0, y: 0 });
+  const pointersRef = useRef(new Map<number, { x: number; y: number }>());
+  const panStartRef = useRef<{ x: number; y: number; offsetX: number; offsetY: number } | null>(null);
+  const pinchStartRef = useRef<{ distance: number; zoom: number } | null>(null);
   const [form, setForm] = useState({
     name: "", email: "", mobile: "", businessName: "", gst: "", address: "", city: "",
     state: "", pincode: "", selectedEvent: "", selectedZone: "", stallCategory: "", stallSize: DEFAULT_STALL_SIZE,
@@ -79,9 +85,11 @@ const StallBookingForm = () => {
   useEffect(() => {
     if (!form.selectedEvent) {
       setZones([]);
+      setSelectedStallsByOption({});
       setForm((current) => ({ ...current, selectedZone: "", stallCategory: "" }));
       return;
     }
+    setSelectedStallsByOption({});
     setForm((current) => ({ ...current, selectedZone: "", stallCategory: "" }));
     getZones(form.selectedEvent).then((items) => setZones(items.filter((z) => z.status === "active")));
   }, [form.selectedEvent]);
@@ -137,6 +145,38 @@ const StallBookingForm = () => {
     }
     return mappings[0];
   }, [form.selectedZone, selectedCategory, selectedEvent]);
+  const categoryZoneOptions = useMemo(() => {
+    if (!selectedEvent) return [];
+
+    return (selectedEvent.categoryZoneMappings || [])
+      .map((mapping) => {
+        const category = categories.find((item) => item.name === mapping.categoryName && item.type === "stall" && item.status === "active");
+        const zone = zones.find((item) => item._id === mapping.zoneId && item.status === "active");
+        if (!category || !zone) return null;
+        return {
+          key: `${category._id}-${zone._id}`,
+          categoryId: category._id,
+          zoneId: zone._id,
+          categoryName: category.name,
+          zoneName: zone.zoneName,
+          amount: Number(mapping.amount) || 0,
+        };
+      })
+      .filter((item, index, items): item is NonNullable<typeof item> => Boolean(item) && items.findIndex((entry) => entry?.key === item.key) === index);
+  }, [categories, selectedEvent, zones]);
+  const activeCategoryZoneKey = form.stallCategory && form.selectedZone ? `${form.stallCategory}-${form.selectedZone}` : "";
+  const selectedStallNumbers = activeCategoryZoneKey ? selectedStallsByOption[activeCategoryZoneKey] || [] : [];
+  const selectedBookingGroups = useMemo(
+    () =>
+      categoryZoneOptions
+        .map((option) => ({
+          ...option,
+          stallNumbers: selectedStallsByOption[option.key] || [],
+          lineAmount: (selectedStallsByOption[option.key] || []).length * option.amount,
+        }))
+        .filter((option) => option.stallNumbers.length > 0),
+    [categoryZoneOptions, selectedStallsByOption],
+  );
 
   useEffect(() => {
     if (!form.stallCategory) return;
@@ -163,9 +203,9 @@ const StallBookingForm = () => {
   const isValidPincode = (pin: string) => /^\d{6}$/.test(pin);
   const isValidMobile = (mobile: string) => /^\d{10}$/.test(mobile.replace(/\D/g, ""));
   const normalizeMobile = (mobile: string) => mobile.replace(/\D/g, "").slice(-10);
-  const quantityValue = selectedStallNumbers.length;
+  const quantityValue = selectedBookingGroups.reduce((sum, group) => sum + group.stallNumbers.length, 0);
   const perStallPrice = Number(selectedCategoryMapping?.amount) || 0;
-  const totalStallPrice = perStallPrice * quantityValue;
+  const totalStallPrice = selectedBookingGroups.reduce((sum, group) => sum + group.lineAmount, 0);
   const finalAmount = totalStallPrice;
   const numericPaymentAmount = Number(paymentAmount) || 0;
   const canLoadAvailability = Boolean(form.selectedEvent && form.selectedZone && form.stallCategory);
@@ -195,7 +235,6 @@ const StallBookingForm = () => {
   }, [finalAmount, paymentOption]);
 
   useEffect(() => {
-    setSelectedStallNumbers([]);
     setAvailability(null);
     setAvailabilityError("");
 
@@ -218,18 +257,28 @@ const StallBookingForm = () => {
 
   useEffect(() => {
     if (!availability) return;
-    setSelectedStallNumbers((current) => current.filter((stallNumber) => availability.availableStallNumbers.includes(stallNumber)));
-  }, [availability]);
+    if (!activeCategoryZoneKey) return;
+    setSelectedStallsByOption((current) => ({
+      ...current,
+      [activeCategoryZoneKey]: (current[activeCategoryZoneKey] || []).filter((stallNumber) => availability.availableStallNumbers.includes(stallNumber)),
+    }));
+  }, [activeCategoryZoneKey, availability]);
 
   const toggleStallNumber = (stallNumber: string) => {
-    setSelectedStallNumbers((current) => {
-      if (current.includes(stallNumber)) {
-        return current.filter((item) => item !== stallNumber);
+    if (!activeCategoryZoneKey) return;
+    setSelectedStallsByOption((current) => {
+      const currentGroup = current[activeCategoryZoneKey] || [];
+      if (currentGroup.includes(stallNumber)) {
+        return { ...current, [activeCategoryZoneKey]: currentGroup.filter((item) => item !== stallNumber) };
       }
-      return [...current, stallNumber];
+      return { ...current, [activeCategoryZoneKey]: [...currentGroup, stallNumber] };
     });
     setErrors((current) => ({ ...current, stallNumbers: "" }));
   };
+  const getDistributedPaymentAmount = useCallback(
+    (lineAmount: number, remainingAmount: number) => Math.max(Math.min(lineAmount, remainingAmount), 0),
+    [],
+  );
 
   const validateStep = () => {
     const newErrors: Record<string, string> = {};
@@ -272,22 +321,15 @@ const StallBookingForm = () => {
         break;
       case 2:
         if (isEmpty(form.selectedEvent)) newErrors.selectedEvent = "Event is required";
-        if (isEmpty(form.stallCategory)) newErrors.stallCategory = "Stall category is required";
-        if (!isEmpty(form.stallCategory) && availableZones.length === 0) {
-          newErrors.selectedZone = "No zones are configured for the selected category";
-        } else if (isEmpty(form.selectedZone)) {
-          newErrors.selectedZone = "Zone is required";
-        }
         if (canLoadAvailability && availabilityError) {
           newErrors.stallNumbers = availabilityError;
-        } else if (availability && availability.availableCount === 0) {
+        } else if (activeCategoryZoneKey && availability && availability.availableCount === 0) {
           newErrors.stallNumbers = "No stalls are currently available for this category and zone";
-        } else if (selectedStallNumbers.length === 0) {
-          newErrors.stallNumbers = "Select at least one stall from the stall view";
+        } else if (quantityValue === 0) {
+          newErrors.stallNumbers = "Select at least one stall from any category and zone";
         }
         break;
       case 3:
-        if (isEmpty(form.paymentMode)) newErrors.paymentMode = "Payment mode is required";
         if (!finalAmount) {
           newErrors.paymentAmount = "Select your stall(s) first to calculate the final amount";
         } else if (paymentOption === "full") {
@@ -371,10 +413,112 @@ const StallBookingForm = () => {
   const labelClass = "block text-sm font-medium text-foreground mb-1.5";
 
   const errorClass = "mt-1 text-xs text-red-500";
+  const clampZoom = useCallback((value: number) => Math.min(3, Math.max(1, value)), []);
+  const resetLayoutTransform = useCallback(() => {
+    setLayoutZoom(1);
+    setLayoutOffset({ x: 0, y: 0 });
+  }, []);
+  const applyZoom = useCallback((delta: number) => {
+    setLayoutZoom((current) => {
+      const next = clampZoom(current + delta);
+      if (next === 1) {
+        setLayoutOffset({ x: 0, y: 0 });
+      }
+      return next;
+    });
+  }, [clampZoom]);
+  const getPointerDistance = useCallback((points: { x: number; y: number }[]) => {
+    if (points.length < 2) return 0;
+    const [first, second] = points;
+    return Math.hypot(second.x - first.x, second.y - first.y);
+  }, []);
+  const handleLayoutWheel = useCallback((event: React.WheelEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    applyZoom(event.deltaY < 0 ? 0.15 : -0.15);
+  }, [applyZoom]);
+  const handleLayoutKeyDown = useCallback((event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (event.key === "+" || event.key === "=") {
+      event.preventDefault();
+      applyZoom(0.2);
+      return;
+    }
+    if (event.key === "-" || event.key === "_") {
+      event.preventDefault();
+      applyZoom(-0.2);
+      return;
+    }
+    if (event.key === "0") {
+      event.preventDefault();
+      resetLayoutTransform();
+    }
+  }, [applyZoom, resetLayoutTransform]);
+  const handleLayoutPointerDown = useCallback((event: React.PointerEvent<HTMLDivElement>) => {
+    event.currentTarget.setPointerCapture(event.pointerId);
+    pointersRef.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
+    if (pointersRef.current.size === 1 && layoutZoom > 1) {
+      panStartRef.current = {
+        x: event.clientX,
+        y: event.clientY,
+        offsetX: layoutOffset.x,
+        offsetY: layoutOffset.y,
+      };
+    }
+    if (pointersRef.current.size === 2) {
+      pinchStartRef.current = {
+        distance: getPointerDistance([...pointersRef.current.values()]),
+        zoom: layoutZoom,
+      };
+      panStartRef.current = null;
+    }
+  }, [getPointerDistance, layoutOffset.x, layoutOffset.y, layoutZoom]);
+  const handleLayoutPointerMove = useCallback((event: React.PointerEvent<HTMLDivElement>) => {
+    if (!pointersRef.current.has(event.pointerId)) return;
+    pointersRef.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
+    if (pointersRef.current.size === 2 && pinchStartRef.current) {
+      const distance = getPointerDistance([...pointersRef.current.values()]);
+      if (!distance || !pinchStartRef.current.distance) return;
+      const nextZoom = clampZoom(pinchStartRef.current.zoom * (distance / pinchStartRef.current.distance));
+      setLayoutZoom(nextZoom);
+      if (nextZoom === 1) {
+        setLayoutOffset({ x: 0, y: 0 });
+      }
+      return;
+    }
+    if (pointersRef.current.size === 1 && panStartRef.current && layoutZoom > 1) {
+      setLayoutOffset({
+        x: panStartRef.current.offsetX + (event.clientX - panStartRef.current.x),
+        y: panStartRef.current.offsetY + (event.clientY - panStartRef.current.y),
+      });
+    }
+  }, [clampZoom, getPointerDistance, layoutZoom]);
+  const handleLayoutPointerEnd = useCallback((event: React.PointerEvent<HTMLDivElement>) => {
+    pointersRef.current.delete(event.pointerId);
+    if (pointersRef.current.size < 2) {
+      pinchStartRef.current = null;
+    }
+    if (pointersRef.current.size === 1 && layoutZoom > 1) {
+      const [point] = [...pointersRef.current.values()];
+      panStartRef.current = {
+        x: point.x,
+        y: point.y,
+        offsetX: layoutOffset.x,
+        offsetY: layoutOffset.y,
+      };
+      return;
+    }
+    panStartRef.current = null;
+  }, [layoutOffset.x, layoutOffset.y, layoutZoom]);
+  const layoutTransformStyle = {
+    transform: `translate(${layoutOffset.x}px, ${layoutOffset.y}px) scale(${layoutZoom})`,
+    transformOrigin: "center center",
+    transition: pointersRef.current.size ? "none" : "transform 180ms ease-out",
+    imageRendering: "crisp-edges",
+    willChange: "transform",
+  } as const;
 
   return (
     <section id="booking" className="py-20 md:py-28 bg-background">
-      <div className="container max-w-4xl">
+      <div className="container max-w-6xl">
         <div className="text-center mb-12">
           <span className="text-sm font-semibold text-primary uppercase tracking-widest">Booking</span>
           <h2 className="font-display text-3xl md:text-4xl font-bold text-foreground mt-3">
@@ -400,7 +544,71 @@ const StallBookingForm = () => {
           ))}
         </div>
 
-        <div className="bg-card rounded-2xl shadow-elevated p-6 md:p-10">
+        <div className="grid gap-6 xl:grid-cols-[1.05fr_1.35fr] xl:items-start">
+          <aside className="hidden xl:block">
+            <div className="sticky top-24 rounded-2xl border border-border bg-card shadow-elevated overflow-hidden">
+              <div className="flex items-center justify-between border-b border-border px-5 py-4">
+                <p className="text-sm font-semibold text-foreground">Venue Layout</p>
+                <button
+                  type="button"
+                  onClick={() => setIsVenueLayoutOpen(true)}
+                  className="inline-flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted"
+                >
+                  <Maximize2 className="h-4 w-4" />
+                  Fullscreen
+                </button>
+              </div>
+              <div
+                className={`relative flex min-h-[640px] items-center justify-center overflow-hidden bg-slate-100 p-4 ${layoutZoom > 1 ? "cursor-grab active:cursor-grabbing" : "cursor-default"}`}
+                onWheel={handleLayoutWheel}
+                onKeyDown={handleLayoutKeyDown}
+                onPointerDown={handleLayoutPointerDown}
+                onPointerMove={handleLayoutPointerMove}
+                onPointerUp={handleLayoutPointerEnd}
+                onPointerCancel={handleLayoutPointerEnd}
+                tabIndex={0}
+                style={{ touchAction: "none" }}
+              >
+                <div className="absolute right-3 top-3 z-10 flex flex-col overflow-hidden rounded-lg border border-border bg-background/95 shadow-sm">
+                  <button
+                    type="button"
+                    onPointerDown={(event) => event.stopPropagation()}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      applyZoom(0.2);
+                    }}
+                    className="flex h-10 w-10 items-center justify-center text-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
+                    disabled={layoutZoom >= 3}
+                    aria-label="Zoom in"
+                  >
+                    <Plus className="h-4 w-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onPointerDown={(event) => event.stopPropagation()}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      applyZoom(-0.2);
+                    }}
+                    className="flex h-10 w-10 items-center justify-center border-t border-border text-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
+                    disabled={layoutZoom <= 1}
+                    aria-label="Zoom out"
+                  >
+                    <Minus className="h-4 w-4" />
+                  </button>
+                </div>
+                <img
+                  src={venueLayoutImage}
+                  alt="Venue layout preview"
+                  className="h-full w-full object-contain"
+                  draggable={false}
+                  style={layoutTransformStyle}
+                />
+              </div>
+            </div>
+          </aside>
+
+          <div className="bg-card rounded-2xl shadow-elevated p-6 md:p-10">
           {/* Step 0: OTP */}
           {step === 0 && (
             <div className="space-y-5 max-w-md mx-auto">
@@ -521,57 +729,33 @@ const StallBookingForm = () => {
               </div>
 
               <div>
-                <label className={labelClass}>Stall Category *</label>
+                <label className={labelClass}>Category + Zone *</label>
                 {!form.selectedEvent ? (
                   <div className="rounded-lg border border-dashed border-border bg-muted/25 px-4 py-3 text-sm text-muted-foreground">
-                    Select an event first to see available stall categories.
+                    Select an event first to see available options.
                   </div>
                 ) : (
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                    {filteredCategories.map((c) => (
-                      <button key={c._id} type="button" onClick={() => {
-                        update("stallCategory", c._id);
-                        update("selectedZone", "");
-                        setSelectedStallNumbers([]);
+                    {categoryZoneOptions.map((option) => (
+                      <button key={option.key} type="button" onClick={() => {
+                        update("stallCategory", option.categoryId);
+                        update("selectedZone", option.zoneId);
                       }}
-                        className={`px-4 py-3 rounded-lg border text-sm font-medium transition-all ${form.stallCategory === c._id ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground hover:border-primary/50"}`}>
-                        {c.name}
+                        className={`px-4 py-3 rounded-lg border text-sm font-medium text-left transition-all ${
+                          form.stallCategory === option.categoryId && form.selectedZone === option.zoneId
+                            ? "border-primary bg-primary/10 text-primary"
+                            : "border-border text-muted-foreground hover:border-primary/50"
+                        }`}>
+                        <span className="block">{option.categoryName}</span>
+                        <span className="mt-1 block text-xs opacity-80">{option.zoneName}</span>
                       </button>
                     ))}
                   </div>
                 )}
                 {errors.stallCategory && <p className={errorClass}>{errors.stallCategory}</p>}
-                {form.selectedEvent && filteredCategories.length === 0 ? (
-                  <p className="mt-2 text-xs font-medium text-muted-foreground">No stall categories configured for selected event.</p>
+                {form.selectedEvent && categoryZoneOptions.length === 0 ? (
+                  <p className="mt-2 text-xs font-medium text-muted-foreground">No category and zone mappings configured for selected event.</p>
                 ) : null}
-              </div>
-
-              <div>
-                <label className={labelClass}>Zone *</label>
-                <select
-                  className={inputClass(!!errors.selectedZone)}
-                  value={form.selectedZone}
-                  onChange={(e) => {
-                    update("selectedZone", e.target.value);
-                    setSelectedStallNumbers([]);
-                  }}
-                  disabled={!form.stallCategory || availableZones.length === 0}
-                >
-                  <option value="">
-                    {!form.stallCategory
-                      ? "Select category first"
-                      : availableZones.length === 0
-                        ? "No zones available for this category"
-                        : "Select Zone"}
-                  </option>
-                  {availableZones.map((zone) => <option key={zone._id} value={zone._id}>{zone.zoneName}</option>)}
-                </select>
-                {selectedCategory && availableZones.length > 0 ? (
-                  <p className="mt-2 text-xs font-medium text-muted-foreground">
-                    Available zones for {selectedCategory.name}: {availableZones.map((zone) => zone.zoneName).join(", ")}
-                  </p>
-                ) : null}
-                {errors.selectedZone && <p className={errorClass}>{errors.selectedZone}</p>}
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -586,26 +770,24 @@ const StallBookingForm = () => {
                       <p className="mt-1 text-xl font-semibold text-foreground">{quantityValue}</p>
                     </div>
                     <div className="rounded-lg border border-border bg-background px-4 py-3">
-                      <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Amount</p>
+                      <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Total</p>
                       <p className="mt-1 text-xl font-semibold text-foreground">Rs {totalStallPrice.toLocaleString()}</p>
                     </div>
                   </div>
-                </div>
-
-                <div>
-                  <label className={labelClass}>Stall Price</label>
-                  <div className="rounded-lg border border-border bg-muted/25 px-4 py-3 text-sm text-foreground">
-                    {selectedCategory && form.selectedZone ? (
-                      <div className="space-y-1">
-                        <p>Price per stall: ₹{perStallPrice.toLocaleString()}</p>
-                        <p>Total for {quantityValue} stall{quantityValue > 1 ? "s" : ""}: ₹{totalStallPrice.toLocaleString()}</p>
-                      </div>
-                    ) : selectedCategory ? (
-                      <p className="text-muted-foreground">Select a zone to see the final stall price.</p>
-                    ) : (
-                      <p className="text-muted-foreground">Select a category and zone to see the stall price.</p>
-                    )}
+                  <div className="mt-3 rounded-lg border border-border bg-background px-4 py-3 text-sm text-muted-foreground">
+                    {selectedCategory && form.selectedZone
+                      ? `${selectedCategory.name} • ${zones.find((zone) => zone._id === form.selectedZone)?.zoneName || ""} • Rs ${perStallPrice.toLocaleString()} per stall`
+                      : "Select a category and zone to see pricing."}
                   </div>
+                  {selectedBookingGroups.length > 0 ? (
+                    <div className="mt-3 rounded-lg border border-border bg-background px-4 py-3 text-sm text-muted-foreground">
+                      {selectedBookingGroups.map((group) => (
+                        <p key={group.key}>
+                          {group.categoryName} • {group.zoneName}: {group.stallNumbers.join(", ")} = Rs {group.lineAmount.toLocaleString()}
+                        </p>
+                      ))}
+                    </div>
+                  ) : null}
                 </div>
               </div>
 
@@ -646,9 +828,9 @@ const StallBookingForm = () => {
                       })}
                       </div>
                     </div>
-                    {selectedStallNumbers.length > 0 ? (
+                    {selectedBookingGroups.length > 0 ? (
                       <p className="text-xs text-muted-foreground">
-                        Selected: {selectedStallNumbers.join(", ")}
+                        Selected: {selectedBookingGroups.map((group) => `${group.categoryName} • ${group.zoneName}: ${group.stallNumbers.join(", ")}`).join(" | ")}
                       </p>
                     ) : null}
                   </div>
@@ -660,34 +842,18 @@ const StallBookingForm = () => {
                 {errors.stallNumbers && <p className={errorClass}>{errors.stallNumbers}</p>}
               </div>
 
-              <div className="rounded-2xl border border-border bg-muted/20 p-4">
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <p className="text-sm font-semibold text-foreground">Venue Layout</p>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                      Review the venue map before confirming your stall zone.
-                    </p>
-                  </div>
+              <div className="rounded-2xl border border-border bg-muted/20 p-4 xl:hidden">
+                <div className="flex items-center justify-between gap-4">
+                  <p className="text-sm font-semibold text-foreground">Venue Layout</p>
                   <button
                     type="button"
                     onClick={() => setIsVenueLayoutOpen(true)}
                     className="inline-flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted"
                   >
                     <Maximize2 className="h-4 w-4" />
-                    Zoom
+                    View
                   </button>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setIsVenueLayoutOpen(true)}
-                  className="mt-4 block w-full overflow-hidden rounded-xl border border-border bg-background"
-                >
-                  <img
-                    src={venueLayoutImage}
-                    alt="Venue layout preview"
-                    className="h-64 w-full object-contain bg-white"
-                  />
-                </button>
               </div>
             </div>
           )}
@@ -696,17 +862,9 @@ const StallBookingForm = () => {
           {step === 3 && (
             <div className="space-y-6 max-w-md mx-auto">
               <div className="rounded-xl border border-border bg-muted/20 p-4">
-                <label className={labelClass}>Final Amount</label>
-                <input
-                  type="text"
-                  readOnly
-                  value={finalAmount ? `Rs ${finalAmount.toLocaleString()}` : ""}
-                  placeholder="Final amount will appear after stall selection"
-                  className={`${baseInputClass} font-semibold`}
-                />
-                <p className="mt-2 text-xs text-muted-foreground">
-                  This amount is calculated from the selected category, zone, and chosen stalls.
-                </p>
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Payable</p>
+                <p className="mt-1 text-2xl font-semibold text-foreground">{finalAmount ? `Rs ${finalAmount.toLocaleString()}` : "Rs 0"}</p>
+                <p className="mt-2 text-xs text-muted-foreground">{quantityValue} stall{quantityValue === 1 ? "" : "s"} selected</p>
               </div>
 
               <div>
@@ -769,17 +927,14 @@ const StallBookingForm = () => {
                 ) : null}
               </div>
 
-              <div>
-                <label className={labelClass}>Payment Mode *</label>
-                <div className="grid grid-cols-2 gap-3">
-                  {["mock", "UPI", "NEFT/RTGS", "Bank Transfer"].map((m) => (
-                    <button key={m} onClick={() => update("paymentMode", m)}
-                      className={`px-4 py-3 rounded-lg border text-sm font-medium transition-all ${form.paymentMode === m ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground hover:border-primary/50"} ${errors.paymentMode ? "ring-2 ring-red-500/20" : ""}`}>
-                      {m}
-                    </button>
-                  ))}
-                </div>
-                {errors.paymentMode && <p className={errorClass}>{errors.paymentMode}</p>}
+              <div className="pt-4 border-t border-border">
+                <label className={labelClass}>Receipt</label>
+                <input
+                  type="file"
+                  accept="image/*,.pdf"
+                  className={inputClass(false)}
+                  onChange={(e) => setReceiptImage(e.target.files?.[0] || null)}
+                />
               </div>
 
               <div className="pt-4 border-t border-border">
@@ -809,9 +964,6 @@ const StallBookingForm = () => {
                     </button>
                   )}
                 </div>
-                <p className="mt-2 text-xs text-muted-foreground">
-                  Enter the transaction ID or reference number from your payment confirmation.
-                </p>
               </div>
 
               {/* Terms & Conditions Checkbox */}
@@ -872,29 +1024,38 @@ const StallBookingForm = () => {
                     if (validateStep()) {
                       setMessage("");
                       try {
-                        await createBooking({
-                          vendorName: form.name,
-                          vendorEmail: form.email,
-                          mobile: form.mobile,
-                          businessName: form.businessName,
-                          gstNumber: form.gst,
-                          address: form.address,
-                          city: form.city,
-                          state: form.state,
-                          pincode: form.pincode,
-                          eventId: form.selectedEvent,
-                          zoneId: form.selectedZone,
-                          categoryId: form.stallCategory,
-                          stallSize: DEFAULT_STALL_SIZE,
-                          quantity: selectedStallNumbers.length,
-                          stallNumber: selectedStallNumbers.join(", "),
-                          paymentMode: form.paymentMode,
-                          acceptedTerms: true,
-                          paymentRef: form.transactionId,
-                          paymentAmount: numericPaymentAmount,
-                          finalAmount,
-                          paymentOption,
-                        });
+                        let remainingPaymentAmount = numericPaymentAmount;
+                        for (const group of selectedBookingGroups) {
+                          const groupPaymentAmount =
+                            paymentOption === "full" ? group.lineAmount : getDistributedPaymentAmount(group.lineAmount, remainingPaymentAmount);
+                          if (paymentOption === "partial") {
+                            remainingPaymentAmount = Math.max(remainingPaymentAmount - groupPaymentAmount, 0);
+                          }
+                          const payload = new FormData();
+                          payload.append("vendorName", form.name);
+                          payload.append("vendorEmail", form.email);
+                          payload.append("mobile", form.mobile);
+                          payload.append("businessName", form.businessName);
+                          payload.append("gstNumber", form.gst);
+                          payload.append("address", form.address);
+                          payload.append("city", form.city);
+                          payload.append("state", form.state);
+                          payload.append("pincode", form.pincode);
+                          payload.append("eventId", form.selectedEvent);
+                          payload.append("zoneId", group.zoneId);
+                          payload.append("categoryId", group.categoryId);
+                          payload.append("stallSize", DEFAULT_STALL_SIZE);
+                          payload.append("quantity", String(group.stallNumbers.length));
+                          payload.append("stallNumber", group.stallNumbers.join(", "));
+                          payload.append("paymentMode", form.paymentMode);
+                          payload.append("acceptedTerms", "true");
+                          payload.append("paymentRef", form.transactionId);
+                          payload.append("paymentAmount", String(groupPaymentAmount));
+                          payload.append("finalAmount", String(group.lineAmount));
+                          payload.append("paymentOption", groupPaymentAmount >= group.lineAmount ? "full" : "partial");
+                          if (receiptImage) payload.append("receiptImage", receiptImage);
+                          await createBooking(payload);
+                        }
                         setMessage("Booking request submitted successfully!");
                         setTimeout(() => {
                           window.location.reload();
@@ -917,6 +1078,7 @@ const StallBookingForm = () => {
             </div>
           ) : null}
 
+          </div>
         </div>
       </div>
       {isVenueLayoutOpen ? (
@@ -925,14 +1087,11 @@ const StallBookingForm = () => {
           onClick={() => setIsVenueLayoutOpen(false)}
         >
           <div
-            className="relative max-h-[95vh] w-full max-w-6xl overflow-hidden rounded-2xl bg-white shadow-2xl"
+            className="relative h-[95vh] w-full max-w-[96vw] overflow-hidden rounded-2xl bg-white shadow-2xl"
             onClick={(event) => event.stopPropagation()}
           >
             <div className="flex items-center justify-between border-b border-border px-4 py-3">
-              <div>
-                <p className="text-sm font-semibold text-foreground">Venue Layout</p>
-                <p className="text-xs text-muted-foreground">Click outside or use close to return to the booking form.</p>
-              </div>
+              <p className="text-sm font-semibold text-foreground">Venue Layout</p>
               <button
                 type="button"
                 onClick={() => setIsVenueLayoutOpen(false)}
@@ -941,12 +1100,52 @@ const StallBookingForm = () => {
                 <X className="h-4 w-4" />
               </button>
             </div>
-            <div className="max-h-[calc(95vh-72px)] overflow-auto bg-slate-100 p-4">
-              <img
-                src={venueLayoutImage}
-                alt="Venue layout full preview"
-                className="mx-auto h-auto min-w-full rounded-lg bg-white object-contain"
-              />
+            <div
+              className={`relative flex h-[calc(95vh-72px)] items-center justify-center overflow-hidden bg-slate-100 p-4 lg:p-6 ${layoutZoom > 1 ? "cursor-grab active:cursor-grabbing" : "cursor-default"}`}
+              onWheel={handleLayoutWheel}
+              onKeyDown={handleLayoutKeyDown}
+              onPointerDown={handleLayoutPointerDown}
+              onPointerMove={handleLayoutPointerMove}
+              onPointerUp={handleLayoutPointerEnd}
+              onPointerCancel={handleLayoutPointerEnd}
+              tabIndex={0}
+              style={{ touchAction: "none" }}
+            >
+                <div className="absolute right-3 top-3 z-10 flex flex-col overflow-hidden rounded-lg border border-border bg-background/95 shadow-sm">
+                  <button
+                    type="button"
+                    onPointerDown={(event) => event.stopPropagation()}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      applyZoom(0.2);
+                    }}
+                    className="flex h-10 w-10 items-center justify-center text-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
+                    disabled={layoutZoom >= 3}
+                    aria-label="Zoom in"
+                  >
+                    <Plus className="h-4 w-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onPointerDown={(event) => event.stopPropagation()}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      applyZoom(-0.2);
+                    }}
+                    className="flex h-10 w-10 items-center justify-center border-t border-border text-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
+                    disabled={layoutZoom <= 1}
+                    aria-label="Zoom out"
+                  >
+                    <Minus className="h-4 w-4" />
+                  </button>
+                </div>
+                <img
+                  src={venueLayoutImage}
+                  alt="Venue layout full preview"
+                  className="h-full w-full rounded-lg bg-white object-contain"
+                  draggable={false}
+                  style={layoutTransformStyle}
+                />
             </div>
           </div>
         </div>

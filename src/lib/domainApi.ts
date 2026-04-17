@@ -57,13 +57,16 @@ export type BookingItem = {
   quantity: number;
   paymentMode?: string;
   paymentRef?: string;
+  receiptImage?: string;
   paymentAmount?: number;
   finalAmount?: number;
   paymentOption?: "full" | "partial";
   paymentRecords?: Array<{
+    installmentNumber?: number;
     amount: number;
     paymentRef?: string;
     paymentMode?: string;
+    paymentType?: string;
     paidAt?: string;
   }>;
   status: "pending" | "approved" | "rejected";
@@ -192,11 +195,12 @@ export async function deleteEvent(id: string) {
 
 
 
-export async function createBooking(data: Record<string, unknown>) {
+export async function createBooking(data: Record<string, unknown> | FormData) {
+  const isFormData = data instanceof FormData;
   const res = await fetch(buildApiUrl("/api/bookings"), {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(data),
+    headers: isFormData ? undefined : { "Content-Type": "application/json" },
+    body: isFormData ? data : JSON.stringify(data),
   });
   const payload = await res.json();
   if (!res.ok) {
@@ -231,7 +235,7 @@ export async function allotBooking(id: string, data: { status: "pending" | "appr
 
 export async function payBookingBalance(
   id: string,
-  data: { paymentAmount: number; paymentRef?: string; paymentMode?: string },
+  data: { paymentAmount: number; paymentRef?: string; paymentMode?: string; paymentType?: string },
 ): Promise<BookingItem> {
   const res = await apiFetch(`/api/bookings/${id}/pay-balance`, { method: "PATCH", body: JSON.stringify(data) });
   const payload = await res.json();
