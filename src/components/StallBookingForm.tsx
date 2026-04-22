@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, useCallback, useRef } from "react";
-import { Check, ArrowRight, ArrowLeft, Receipt, Copy, Maximize2, X, FileText, Shield, AlertCircle, Plus, Minus } from "lucide-react";
+import { Check, ArrowRight, ArrowLeft, Receipt, Copy, Maximize2, X, FileText, Shield, AlertCircle, Plus, Minus, Users, Ban} from "lucide-react";
 import { createBooking, getBookingAvailability, getCategories, getEvents, getZones, type BookingAvailability, type Category, type EventItem, type ZoneItem } from "@/lib/domainApi";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
@@ -11,35 +11,62 @@ const steps = ["OTP Verification", "Business Details", "Stall Selection", "Payme
 const states = ["Madhya Pradesh", "Delhi", "Maharashtra", "Gujarat", "Rajasthan", "Uttar Pradesh", "Tamil Nadu", "Karnataka", "West Bengal", "Other"];
 const DEFAULT_STALL_SIZE = "Standard Stall";
 const MIN_PARTIAL_PAYMENT = 2000;
+
 const bookingTerms = [
   {
-    title: "Booking Process",
+    title: "बुकिंग एवं भुगतान नियम",
     icon: FileText,
     accentClass: "text-primary",
     points: [
-      "Submitting the stall form is a booking request and remains subject to organizer approval and availability.",
-      "Booking confirmation is shared only after payment verification and internal approval.",
-      "Stall allocation may be adjusted by the organizer to match category and venue planning requirements.",
+      "स्टाल बुकिंग हेतु 50% एडवांस पेमेंट QR कोड पर करना अनिवार्य है।",
+      "पेमेंट के बाद Transaction ID या Screenshot अपलोड करना आवश्यक है।",
+      "शेष 50% राशि स्टाल पजेशन लेने से पहले जमा करनी होगी।",
+      "संस्था की ऑफिशियल स्वीकृति के बाद ही बुकिंग फाइनल मानी जाएगी।",
     ],
   },
   {
-    title: "Payment Policy",
+    title: "रिफंड एवं कैंसिलेशन",
+    icon: AlertCircle,
+    accentClass: "text-red-600",
+    points: [
+      "एक बार बुकिंग होने के बाद कोई भी पेमेंट वापस नहीं किया जाएगा।",
+      "कन्फर्मेशन के बाद किसी भी प्रकार का बदलाव या ट्रांसफर मान्य नहीं होगा।",
+    ],
+  },
+  {
+    title: "संस्था के अधिकार",
     icon: Shield,
     accentClass: "text-secondary",
     points: [
-      "Payments made toward stall booking are treated as committed once verified by the organizer.",
-      "The selected payment amount must match the payment option chosen in the booking flow.",
-      "You should keep your payment reference safe because it may be required for booking support or reconciliation.",
+      "संस्था (MPSS) को स्टाल बदलने या रिजेक्ट करने का पूर्ण अधिकार है।",
+      "किसी भी विवाद की स्थिति में संस्था का निर्णय अंतिम और मान्य होगा।",
     ],
   },
   {
-    title: "Vendor Responsibility",
+    title: "जिम्मेदारी एवं सुरक्षा",
     icon: AlertCircle,
     accentClass: "text-amber-600",
     points: [
-      "Vendors are responsible for complying with venue rules, safety instructions, and permitted product categories.",
-      "Subletting or unauthorized transfer of an allotted stall is not allowed.",
-      "Participation remains subject to event policies, operational constraints, and force majeure conditions.",
+      "चोरी, आग, दुर्घटना या प्राकृतिक आपदा की स्थिति में पूरी जिम्मेदारी स्टाल धारक की होगी।",
+      "संस्था द्वारा CCTV एवं सिक्योरिटी उपलब्ध कराई जाएगी, लेकिन व्यक्तिगत सामान की सुरक्षा आपकी जिम्मेदारी होगी।",
+    ],
+  },
+  {
+    title: "स्टाल उपयोग नियम",
+    icon: Users,
+    accentClass: "text-primary",
+    points: [
+      "प्रत्येक स्टाल पर अधिकतम 2 सेल्समैन ही अनुमति होगी।",
+      "रात्रि 11 बजे के बाद स्टाल पर रुकना या सोना प्रतिबंधित है।",
+    ],
+  },
+  {
+    title: "प्रतिबंधित गतिविधियाँ",
+    icon: Ban,
+    accentClass: "text-red-600",
+    points: [
+      "स्टाल में शराब, सिगरेट या किसी भी प्रकार का नशा पूर्णतः प्रतिबंधित है।",
+      "अशोभनीय व्यवहार या नियम उल्लंघन पर बुकिंग तुरंत रद्द कर दी जाएगी (No Refund)।",
     ],
   },
 ];
@@ -609,474 +636,472 @@ const StallBookingForm = () => {
           </aside>
 
           <div className="bg-card rounded-2xl shadow-elevated p-6 md:p-10">
-          {/* Step 0: OTP */}
-          {step === 0 && (
-            <div className="space-y-5 max-w-md mx-auto">
-              <div>
-                <label className={labelClass}>Mobile Number *</label>
-                <input type="tel" className={inputClass(!!(errors.mobile || mobileError))} placeholder="+91 98765 43210" value={form.mobile}
-                  onChange={(e) => {
-                    update("mobile", e.target.value);
-                    setMobileError("");
-                    setOtp("");
-                    setGeneratedOtp("");
-                    setOtpSent(false);
-                    setOtpVerified(false);
-                    setOtpError("");
-                    setErrors((current) => ({ ...current, mobile: "", otp: "" }));
-                  }} />
-                {(errors.mobile || mobileError) && <p className={errorClass}>{errors.mobile || mobileError}</p>}
+            {/* Step 0: OTP */}
+            {step === 0 && (
+              <div className="space-y-5 max-w-md mx-auto">
+                <div>
+                  <label className={labelClass}>Mobile Number *</label>
+                  <input type="tel" className={inputClass(!!(errors.mobile || mobileError))} placeholder="+91 98765 43210" value={form.mobile}
+                    onChange={(e) => {
+                      update("mobile", e.target.value);
+                      setMobileError("");
+                      setOtp("");
+                      setGeneratedOtp("");
+                      setOtpSent(false);
+                      setOtpVerified(false);
+                      setOtpError("");
+                      setErrors((current) => ({ ...current, mobile: "", otp: "" }));
+                    }} />
+                  {(errors.mobile || mobileError) && <p className={errorClass}>{errors.mobile || mobileError}</p>}
 
-              </div>
-              {!otpSent ? (
-                <button onClick={handleSendOtp} className="w-full py-3 rounded-lg bg-primary text-primary-foreground font-semibold cursor-pointer hover:opacity-90 transition-opacity">
-                  Send OTP
-                </button>
-              ) : (
-                <>
-                  <div className="rounded-lg border border-dashed border-primary/40 bg-primary/5 px-4 py-3">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-primary">Temporary OTP</p>
-                    <p className="mt-1 text-lg font-bold tracking-[0.35em] text-foreground">{generatedOtp}</p>
-                    <p className="mt-1 text-xs text-muted-foreground">Use this temporary OTP to continue the booking flow.</p>
-                  </div>
-                  <div>
-                    <label className={labelClass}>Enter OTP</label>
-                    <input type="text" className={inputClass(!!(errors.otp || otpError))} placeholder="Enter 6-digit OTP" maxLength={6}
-                      value={otp} onChange={(e) => {
-                        setOtp(e.target.value.replace(/\D/g, "").slice(0, 6));
-                        setOtpVerified(false);
-                        setOtpError("");
-                        setErrors((current) => ({ ...current, otp: "" }));
-                      }} />
-                    {(errors.otp || otpError) && <p className={errorClass}>{errors.otp || otpError}</p>}
-                    {otpVerified ? <p className="mt-1 text-xs font-medium text-green-600">OTP verified successfully.</p> : null}
-                  </div>
-                  <button onClick={handleVerifyAndContinue} className="w-full py-3 rounded-lg bg-primary text-primary-foreground font-semibold cursor-pointer hover:opacity-90 transition-opacity">
-                    Verify & Continue
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleSendOtp}
-                    className="w-full py-3 rounded-lg border border-border text-foreground font-semibold cursor-pointer hover:bg-muted transition-colors"
-                  >
-                    Resend OTP
-                  </button>
-                </>
-              )}
-            </div>
-          )}
-
-          {/* Step 1: Details */}
-          {step === 1 && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              {[
-                { label: "Full Name *", field: "name", type: "text", placeholder: "Rajesh Kumar" },
-                { label: "Email *", field: "email", type: "email", placeholder: "rajesh@example.com" },
-                { label: "Business Name *", field: "businessName", type: "text", placeholder: "Kumar Handicrafts" },
-                { label: "GST Number (Optional)", field: "gst", type: "text", placeholder: "22AAAAA0000A1Z5" },
-              ].map((f) => (
-                <div key={f.field}>
-                  <label className={labelClass}>{f.label}</label>
-                  <input type={f.type} className={inputClass(!!errors[f.field as keyof typeof errors])} placeholder={f.placeholder}
-                    value={form[f.field as "name" | "email" | "businessName" | "gst"]} onChange={(e) => update(f.field, e.target.value)} />
-                  {errors[f.field as keyof typeof errors] && <p className={errorClass}>{errors[f.field as keyof typeof errors]}</p>}
                 </div>
-              ))}
-
-              <div className="md:col-span-2">
-                <label className={labelClass}>Address *</label>
-                <input type="text" className={inputClass(!!errors.address)} placeholder="Full address" value={form.address}
-                  onChange={(e) => update("address", e.target.value)} />
-                {errors.address && <p className={errorClass}>{errors.address}</p>}
-              </div>
-
-              <div>
-                <label className={labelClass}>City *</label>
-                <input type="text" className={inputClass(!!errors.city)} placeholder="City" value={form.city}
-                  onChange={(e) => update("city", e.target.value)} />
-                {errors.city && <p className={errorClass}>{errors.city}</p>}
-              </div>
-
-              <div>
-                <label className={labelClass}>State *</label>
-                <select className={inputClass(!!errors.state)} value={form.state} onChange={(e) => update("state", e.target.value)}>
-                  <option value="">Select State</option>
-                  {states.map((s) => <option key={s} value={s}>{s}</option>)}
-                </select>
-                {errors.state && <p className={errorClass}>{errors.state}</p>}
-              </div>
-
-              <div>
-                <label className={labelClass}>Pincode *</label>
-                <input type="text" className={inputClass(!!errors.pincode)} placeholder="110001" value={form.pincode}
-                  onChange={(e) => update("pincode", e.target.value)} />
-                {errors.pincode && <p className={errorClass}>{errors.pincode}</p>}
-              </div>
-
-            </div>
-          )}
-
-          {/* Step 2: Stall Selection */}
-          {step === 2 && (
-            <div className="space-y-6">
-              <div>
-                <label className={labelClass}>Event *</label>
-                <select className={inputClass(!!errors.selectedEvent)} value={form.selectedEvent} onChange={(e) => update("selectedEvent", e.target.value)}>
-                  <option value="">Select Event</option>
-                  {events.map((eventName) => <option key={eventName._id} value={eventName._id}>{eventName.title}</option>)}
-                </select>
-                {errors.selectedEvent && <p className={errorClass}>{errors.selectedEvent}</p>}
-              </div>
-
-              <div>
-                <label className={labelClass}>Category + Zone *</label>
-                {!form.selectedEvent ? (
-                  <div className="rounded-lg border border-dashed border-border bg-muted/25 px-4 py-3 text-sm text-muted-foreground">
-                    Select an event first to see available options.
-                  </div>
+                {!otpSent ? (
+                  <button onClick={handleSendOtp} className="w-full py-3 rounded-lg bg-primary text-primary-foreground font-semibold cursor-pointer hover:opacity-90 transition-opacity">
+                    Send OTP
+                  </button>
                 ) : (
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                    {categoryZoneOptions.map((option) => (
-                      <button key={option.key} type="button" onClick={() => {
-                        update("stallCategory", option.categoryId);
-                        update("selectedZone", option.zoneId);
-                      }}
-                        className={`px-4 py-3 rounded-lg border text-sm font-medium text-left transition-all ${
-                          form.stallCategory === option.categoryId && form.selectedZone === option.zoneId
-                            ? "border-primary bg-primary/10 text-primary"
-                            : "border-border text-muted-foreground hover:border-primary/50"
-                        }`}>
-                        <span className="block">{option.categoryName}</span>
-                        <span className="mt-1 block text-xs opacity-80">{option.zoneName}</span>
-                      </button>
-                    ))}
-                  </div>
+                  <>
+                    <div className="rounded-lg border border-dashed border-primary/40 bg-primary/5 px-4 py-3">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-primary">Temporary OTP</p>
+                      <p className="mt-1 text-lg font-bold tracking-[0.35em] text-foreground">{generatedOtp}</p>
+                      <p className="mt-1 text-xs text-muted-foreground">Use this temporary OTP to continue the booking flow.</p>
+                    </div>
+                    <div>
+                      <label className={labelClass}>Enter OTP</label>
+                      <input type="text" className={inputClass(!!(errors.otp || otpError))} placeholder="Enter 6-digit OTP" maxLength={6}
+                        value={otp} onChange={(e) => {
+                          setOtp(e.target.value.replace(/\D/g, "").slice(0, 6));
+                          setOtpVerified(false);
+                          setOtpError("");
+                          setErrors((current) => ({ ...current, otp: "" }));
+                        }} />
+                      {(errors.otp || otpError) && <p className={errorClass}>{errors.otp || otpError}</p>}
+                      {otpVerified ? <p className="mt-1 text-xs font-medium text-green-600">OTP verified successfully.</p> : null}
+                    </div>
+                    <button onClick={handleVerifyAndContinue} className="w-full py-3 rounded-lg bg-primary text-primary-foreground font-semibold cursor-pointer hover:opacity-90 transition-opacity">
+                      Verify & Continue
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleSendOtp}
+                      className="w-full py-3 rounded-lg border border-border text-foreground font-semibold cursor-pointer hover:bg-muted transition-colors"
+                    >
+                      Resend OTP
+                    </button>
+                  </>
                 )}
-                {errors.stallCategory && <p className={errorClass}>{errors.stallCategory}</p>}
-                {form.selectedEvent && categoryZoneOptions.length === 0 ? (
-                  <p className="mt-2 text-xs font-medium text-muted-foreground">No category and zone mappings configured for selected event.</p>
-                ) : null}
               </div>
+            )}
 
+            {/* Step 1: Details */}
+            {step === 1 && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                {[
+                  { label: "Full Name *", field: "name", type: "text", placeholder: "Rajesh Kumar" },
+                  { label: "Email *", field: "email", type: "email", placeholder: "rajesh@example.com" },
+                  { label: "Business Name *", field: "businessName", type: "text", placeholder: "Kumar Handicrafts" },
+                  { label: "GST Number (Optional)", field: "gst", type: "text", placeholder: "22AAAAA0000A1Z5" },
+                ].map((f) => (
+                  <div key={f.field}>
+                    <label className={labelClass}>{f.label}</label>
+                    <input type={f.type} className={inputClass(!!errors[f.field as keyof typeof errors])} placeholder={f.placeholder}
+                      value={form[f.field as "name" | "email" | "businessName" | "gst"]} onChange={(e) => update(f.field, e.target.value)} />
+                    {errors[f.field as keyof typeof errors] && <p className={errorClass}>{errors[f.field as keyof typeof errors]}</p>}
+                  </div>
+                ))}
+
                 <div className="md:col-span-2">
-                  <div className="grid gap-3 rounded-xl border border-border bg-muted/20 p-4 md:grid-cols-3">
-                    <div className="rounded-lg border border-border bg-background px-4 py-3">
-                      <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Available</p>
-                      <p className="mt-1 text-xl font-semibold text-foreground">{availability?.availableCount ?? 0}</p>
+                  <label className={labelClass}>Address *</label>
+                  <input type="text" className={inputClass(!!errors.address)} placeholder="Full address" value={form.address}
+                    onChange={(e) => update("address", e.target.value)} />
+                  {errors.address && <p className={errorClass}>{errors.address}</p>}
+                </div>
+
+                <div>
+                  <label className={labelClass}>City *</label>
+                  <input type="text" className={inputClass(!!errors.city)} placeholder="City" value={form.city}
+                    onChange={(e) => update("city", e.target.value)} />
+                  {errors.city && <p className={errorClass}>{errors.city}</p>}
+                </div>
+
+                <div>
+                  <label className={labelClass}>State *</label>
+                  <select className={inputClass(!!errors.state)} value={form.state} onChange={(e) => update("state", e.target.value)}>
+                    <option value="">Select State</option>
+                    {states.map((s) => <option key={s} value={s}>{s}</option>)}
+                  </select>
+                  {errors.state && <p className={errorClass}>{errors.state}</p>}
+                </div>
+
+                <div>
+                  <label className={labelClass}>Pincode *</label>
+                  <input type="text" className={inputClass(!!errors.pincode)} placeholder="110001" value={form.pincode}
+                    onChange={(e) => update("pincode", e.target.value)} />
+                  {errors.pincode && <p className={errorClass}>{errors.pincode}</p>}
+                </div>
+
+              </div>
+            )}
+
+            {/* Step 2: Stall Selection */}
+            {step === 2 && (
+              <div className="space-y-6">
+                <div>
+                  <label className={labelClass}>Event *</label>
+                  <select className={inputClass(!!errors.selectedEvent)} value={form.selectedEvent} onChange={(e) => update("selectedEvent", e.target.value)}>
+                    <option value="">Select Event</option>
+                    {events.map((eventName) => <option key={eventName._id} value={eventName._id}>{eventName.title}</option>)}
+                  </select>
+                  {errors.selectedEvent && <p className={errorClass}>{errors.selectedEvent}</p>}
+                </div>
+
+                <div>
+                  <label className={labelClass}>Category + Zone *</label>
+                  {!form.selectedEvent ? (
+                    <div className="rounded-lg border border-dashed border-border bg-muted/25 px-4 py-3 text-sm text-muted-foreground">
+                      Select an event first to see available options.
                     </div>
-                    <div className="rounded-lg border border-border bg-background px-4 py-3">
-                      <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Selected</p>
-                      <p className="mt-1 text-xl font-semibold text-foreground">{quantityValue}</p>
-                    </div>
-                    <div className="rounded-lg border border-border bg-background px-4 py-3">
-                      <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Total</p>
-                      <p className="mt-1 text-xl font-semibold text-foreground">Rs {totalStallPrice.toLocaleString()}</p>
-                    </div>
-                  </div>
-                  <div className="mt-3 rounded-lg border border-border bg-background px-4 py-3 text-sm text-muted-foreground">
-                    {selectedCategory && form.selectedZone
-                      ? `${selectedCategory.name} • ${zones.find((zone) => zone._id === form.selectedZone)?.zoneName || ""} • Rs ${perStallPrice.toLocaleString()} per stall`
-                      : "Select a category and zone to see pricing."}
-                  </div>
-                  {selectedBookingGroups.length > 0 ? (
-                    <div className="mt-3 rounded-lg border border-border bg-background px-4 py-3 text-sm text-muted-foreground">
-                      {selectedBookingGroups.map((group) => (
-                        <p key={group.key}>
-                          {group.categoryName} • {group.zoneName}: {group.stallNumbers.join(", ")} = Rs {group.lineAmount.toLocaleString()}
-                        </p>
+                  ) : (
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                      {categoryZoneOptions.map((option) => (
+                        <button key={option.key} type="button" onClick={() => {
+                          update("stallCategory", option.categoryId);
+                          update("selectedZone", option.zoneId);
+                        }}
+                          className={`px-4 py-3 rounded-lg border text-sm font-medium text-left transition-all ${form.stallCategory === option.categoryId && form.selectedZone === option.zoneId
+                              ? "border-primary bg-primary/10 text-primary"
+                              : "border-border text-muted-foreground hover:border-primary/50"
+                            }`}>
+                          <span className="block">{option.categoryName}</span>
+                          <span className="mt-1 block text-xs opacity-80">{option.zoneName}</span>
+                        </button>
                       ))}
                     </div>
+                  )}
+                  {errors.stallCategory && <p className={errorClass}>{errors.stallCategory}</p>}
+                  {form.selectedEvent && categoryZoneOptions.length === 0 ? (
+                    <p className="mt-2 text-xs font-medium text-muted-foreground">No category and zone mappings configured for selected event.</p>
                   ) : null}
                 </div>
-              </div>
 
-              <div>
-                <label className={labelClass}>Stall View *</label>
-                {!canLoadAvailability ? (
-                  <div className="rounded-lg border border-dashed border-border bg-muted/25 px-4 py-3 text-sm text-muted-foreground">
-                    Select event, category, and zone to open the stall view.
-                  </div>
-                ) : availabilityError ? (
-                  <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
-                    {availabilityError}
-                  </div>
-                ) : availability && availability.availableStallNumbers.length > 0 ? (
-                  <div className="space-y-3">
-                    <div className="rounded-xl border border-border bg-background p-4">
-                      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-                        <p className="text-sm font-semibold text-foreground">Select one or more stalls directly from the grid</p>
-                        <p className="text-xs text-muted-foreground">Booked stalls are already hidden.</p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  <div className="md:col-span-2">
+                    <div className="grid gap-3 rounded-xl border border-border bg-muted/20 p-4 md:grid-cols-3">
+                      <div className="rounded-lg border border-border bg-background px-4 py-3">
+                        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Available</p>
+                        <p className="mt-1 text-xl font-semibold text-foreground">{availability?.availableCount ?? 0}</p>
                       </div>
-                      <div className="grid grid-cols-4 gap-2 sm:grid-cols-6 md:grid-cols-8">
-                      {availability.availableStallNumbers.map((stallNumber) => {
-                        const isSelected = selectedStallNumbers.includes(stallNumber);
-                        return (
-                          <button
-                            key={stallNumber}
-                            type="button"
-                            onClick={() => toggleStallNumber(stallNumber)}
-                            className={`rounded-lg border px-3 py-2 text-sm font-medium transition-all ${
-                              isSelected
-                                ? "border-primary bg-primary text-primary-foreground"
-                                : "border-border bg-background text-foreground hover:border-primary/50"
-                            }`}
-                          >
-                            {stallNumber}
-                          </button>
-                        );
-                      })}
+                      <div className="rounded-lg border border-border bg-background px-4 py-3">
+                        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Selected</p>
+                        <p className="mt-1 text-xl font-semibold text-foreground">{quantityValue}</p>
                       </div>
+                      <div className="rounded-lg border border-border bg-background px-4 py-3">
+                        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Total</p>
+                        <p className="mt-1 text-xl font-semibold text-foreground">Rs {totalStallPrice.toLocaleString()}</p>
+                      </div>
+                    </div>
+                    <div className="mt-3 rounded-lg border border-border bg-background px-4 py-3 text-sm text-muted-foreground">
+                      {selectedCategory && form.selectedZone
+                        ? `${selectedCategory.name} • ${zones.find((zone) => zone._id === form.selectedZone)?.zoneName || ""} • Rs ${perStallPrice.toLocaleString()} per stall`
+                        : "Select a category and zone to see pricing."}
                     </div>
                     {selectedBookingGroups.length > 0 ? (
-                      <p className="text-xs text-muted-foreground">
-                        Selected: {selectedBookingGroups.map((group) => `${group.categoryName} • ${group.zoneName}: ${group.stallNumbers.join(", ")}`).join(" | ")}
-                      </p>
+                      <div className="mt-3 rounded-lg border border-border bg-background px-4 py-3 text-sm text-muted-foreground">
+                        {selectedBookingGroups.map((group) => (
+                          <p key={group.key}>
+                            {group.categoryName} • {group.zoneName}: {group.stallNumbers.join(", ")} = Rs {group.lineAmount.toLocaleString()}
+                          </p>
+                        ))}
+                      </div>
                     ) : null}
                   </div>
-                ) : (
-                  <div className="rounded-lg border border-dashed border-border bg-muted/25 px-4 py-3 text-sm text-muted-foreground">
-                    No stall numbers are available for this selection right now.
-                  </div>
-                )}
-                {errors.stallNumbers && <p className={errorClass}>{errors.stallNumbers}</p>}
-              </div>
-
-              <div className="rounded-2xl border border-border bg-muted/20 p-4 xl:hidden">
-                <div className="flex items-center justify-between gap-4">
-                  <p className="text-sm font-semibold text-foreground">Venue Layout</p>
-                  <button
-                    type="button"
-                    onClick={() => setIsVenueLayoutOpen(true)}
-                    className="inline-flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted"
-                  >
-                    <Maximize2 className="h-4 w-4" />
-                    View
-                  </button>
                 </div>
-              </div>
-            </div>
-          )}
 
-          {/* Step 3: Payment */}
-          {step === 3 && (
-            <div className="space-y-6 max-w-md mx-auto">
-              <div className="rounded-xl border border-border bg-muted/20 p-4">
-                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Payable</p>
-                <p className="mt-1 text-2xl font-semibold text-foreground">{finalAmount ? `Rs ${finalAmount.toLocaleString()}` : "Rs 0"}</p>
-                <p className="mt-2 text-xs text-muted-foreground">{quantityValue} stall{quantityValue === 1 ? "" : "s"} selected</p>
-              </div>
-
-              <div>
-                <label className={labelClass}>Payment Option *</label>
-                <div className="grid grid-cols-2 gap-3">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setPaymentOption("full");
-                      setPaymentAmount(finalAmount ? String(finalAmount) : "");
-                      setErrors((current) => ({ ...current, paymentAmount: "" }));
-                    }}
-                    className={`px-4 py-3 rounded-lg border text-sm font-medium transition-all ${paymentOption === "full" ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground hover:border-primary/50"}`}
-                  >
-                    Pay Full Amount
-                  </button>
-                  <button
-                    type="button"
-                    disabled={finalAmount < MIN_PARTIAL_PAYMENT}
-                    onClick={() => {
-                      setPaymentOption("partial");
-                      setPaymentAmount((current) => {
-                        if (!finalAmount) return "";
-                        const parsed = Number(current) || 0;
-                        if (parsed >= MIN_PARTIAL_PAYMENT && parsed <= finalAmount) return current;
-                        return String(MIN_PARTIAL_PAYMENT);
-                      });
-                      setErrors((current) => ({ ...current, paymentAmount: "" }));
-                    }}
-                    className={`px-4 py-3 rounded-lg border text-sm font-medium transition-all ${paymentOption === "partial" ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground hover:border-primary/50"} disabled:cursor-not-allowed disabled:opacity-50`}
-                  >
-                    Pay Partial Amount
-                  </button>
-                </div>
-                <p className="mt-2 text-xs text-muted-foreground">
-                  Partial payment must be at least Rs {MIN_PARTIAL_PAYMENT.toLocaleString()}.
-                </p>
-              </div>
-
-              <div>
-                <label className={labelClass}>{paymentOption === "full" ? "Amount to Pay" : "Partial Amount to Pay"} *</label>
-                <input
-                  type="number"
-                  min={paymentOption === "partial" ? MIN_PARTIAL_PAYMENT : 0}
-                  max={finalAmount || undefined}
-                  value={paymentAmount}
-                  readOnly={paymentOption === "full"}
-                  onChange={(e) => {
-                    setPaymentAmount(e.target.value);
-                    setErrors((current) => ({ ...current, paymentAmount: "" }));
-                  }}
-                  placeholder={paymentOption === "full" ? "Auto-filled from final amount" : "Enter amount"}
-                  className={inputClass(!!errors.paymentAmount)}
-                />
-                {errors.paymentAmount && <p className={errorClass}>{errors.paymentAmount}</p>}
-                {!errors.paymentAmount && paymentOption === "partial" && finalAmount > 0 ? (
-                  <p className="mt-2 text-xs text-muted-foreground">
-                    Remaining amount after this payment: Rs {Math.max(finalAmount - numericPaymentAmount, 0).toLocaleString()}
-                  </p>
-                ) : null}
-              </div>
-
-              <div className="pt-4 border-t border-border">
-                <label className={labelClass}>Receipt</label>
-                <input
-                  type="file"
-                  accept="image/*,.pdf"
-                  className={inputClass(false)}
-                  onChange={(e) => setReceiptImage(e.target.files?.[0] || null)}
-                />
-              </div>
-
-              <div className="pt-4 border-t border-border">
-                <label className={labelClass}>
-                  <span className="flex items-center gap-2">
-                    <Receipt className="w-4 h-4 text-muted-foreground" />
-                    Transaction ID / Reference Number
-                  </span>
-                </label>
-                <div className="relative">
-                  <input
-                    type="text"
-                    className={`${baseInputClass} pl-10 pr-10 font-mono text-sm tracking-wide`}
-                    placeholder="e.g., TXN123456789"
-                    value={form.transactionId}
-                    onChange={(e) => update("transactionId", e.target.value.toUpperCase())}
-                  />
-                  <Receipt className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  {form.transactionId && (
-                    <button
-                      type="button"
-                      onClick={() => navigator.clipboard.writeText(form.transactionId)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded hover:bg-muted transition-colors"
-                      title="Copy transaction ID"
-                    >
-                      <Copy className="w-4 h-4 text-muted-foreground hover:text-foreground" />
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              {/* Terms & Conditions Checkbox */}
-              <div className="pt-6 border-t border-border">
-                <div className="space-y-3 rounded-xl border bg-muted/30 p-4">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="pr-2">
-                      <p className="text-sm font-semibold text-foreground">Terms & Conditions</p>
-                      <p className="mt-1 text-xs text-muted-foreground">
-                        Review the booking terms without leaving this form.
-                      </p>
+                <div>
+                  <label className={labelClass}>Stall View *</label>
+                  {!canLoadAvailability ? (
+                    <div className="rounded-lg border border-dashed border-border bg-muted/25 px-4 py-3 text-sm text-muted-foreground">
+                      Select event, category, and zone to open the stall view.
                     </div>
+                  ) : availabilityError ? (
+                    <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
+                      {availabilityError}
+                    </div>
+                  ) : availability && availability.availableStallNumbers.length > 0 ? (
+                    <div className="space-y-3">
+                      <div className="rounded-xl border border-border bg-background p-4">
+                        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                          <p className="text-sm font-semibold text-foreground">Select one or more stalls directly from the grid</p>
+                          <p className="text-xs text-muted-foreground">Booked stalls are already hidden.</p>
+                        </div>
+                        <div className="grid grid-cols-4 gap-2 sm:grid-cols-6 md:grid-cols-8">
+                          {availability.availableStallNumbers.map((stallNumber) => {
+                            const isSelected = selectedStallNumbers.includes(stallNumber);
+                            return (
+                              <button
+                                key={stallNumber}
+                                type="button"
+                                onClick={() => toggleStallNumber(stallNumber)}
+                                className={`rounded-lg border px-3 py-2 text-sm font-medium transition-all ${isSelected
+                                    ? "border-primary bg-primary text-primary-foreground"
+                                    : "border-border bg-background text-foreground hover:border-primary/50"
+                                  }`}
+                              >
+                                {stallNumber}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                      {selectedBookingGroups.length > 0 ? (
+                        <p className="text-xs text-muted-foreground">
+                          Selected: {selectedBookingGroups.map((group) => `${group.categoryName} • ${group.zoneName}: ${group.stallNumbers.join(", ")}`).join(" | ")}
+                        </p>
+                      ) : null}
+                    </div>
+                  ) : (
+                    <div className="rounded-lg border border-dashed border-border bg-muted/25 px-4 py-3 text-sm text-muted-foreground">
+                      No stall numbers are available for this selection right now.
+                    </div>
+                  )}
+                  {errors.stallNumbers && <p className={errorClass}>{errors.stallNumbers}</p>}
+                </div>
+
+                <div className="rounded-2xl border border-border bg-muted/20 p-4 xl:hidden">
+                  <div className="flex items-center justify-between gap-4">
+                    <p className="text-sm font-semibold text-foreground">Venue Layout</p>
                     <button
                       type="button"
-                      onClick={() => setIsTermsDialogOpen(true)}
-                      className="shrink-0 rounded-lg border border-border bg-background px-3 py-2 text-sm font-semibold text-primary transition-colors hover:bg-muted"
+                      onClick={() => setIsVenueLayoutOpen(true)}
+                      className="inline-flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted"
                     >
-                      Read Terms
+                      <Maximize2 className="h-4 w-4" />
+                      View
                     </button>
                   </div>
-                  <div className="flex items-start space-x-3">
-                  <Checkbox
-                    id="terms"
-                    checked={acceptedTerms}
-                    onCheckedChange={(checked) => {
-                      setAcceptedTerms(Boolean(checked));
-                      setErrors((current) => ({ ...current, terms: "" }));
+                </div>
+              </div>
+            )}
+
+            {/* Step 3: Payment */}
+            {step === 3 && (
+              <div className="space-y-6 max-w-md mx-auto">
+                <div className="rounded-xl border border-border bg-muted/20 p-4">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Payable</p>
+                  <p className="mt-1 text-2xl font-semibold text-foreground">{finalAmount ? `Rs ${finalAmount.toLocaleString()}` : "Rs 0"}</p>
+                  <p className="mt-2 text-xs text-muted-foreground">{quantityValue} stall{quantityValue === 1 ? "" : "s"} selected</p>
+                </div>
+
+                <div>
+                  <label className={labelClass}>Payment Option *</label>
+                  <div className="grid grid-cols-2 gap-3">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setPaymentOption("full");
+                        setPaymentAmount(finalAmount ? String(finalAmount) : "");
+                        setErrors((current) => ({ ...current, paymentAmount: "" }));
+                      }}
+                      className={`px-4 py-3 rounded-lg border text-sm font-medium transition-all ${paymentOption === "full" ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground hover:border-primary/50"}`}
+                    >
+                      Pay Full Amount
+                    </button>
+                    <button
+                      type="button"
+                      disabled={finalAmount < MIN_PARTIAL_PAYMENT}
+                      onClick={() => {
+                        setPaymentOption("partial");
+                        setPaymentAmount((current) => {
+                          if (!finalAmount) return "";
+                          const parsed = Number(current) || 0;
+                          if (parsed >= MIN_PARTIAL_PAYMENT && parsed <= finalAmount) return current;
+                          return String(MIN_PARTIAL_PAYMENT);
+                        });
+                        setErrors((current) => ({ ...current, paymentAmount: "" }));
+                      }}
+                      className={`px-4 py-3 rounded-lg border text-sm font-medium transition-all ${paymentOption === "partial" ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground hover:border-primary/50"} disabled:cursor-not-allowed disabled:opacity-50`}
+                    >
+                      Pay Partial Amount
+                    </button>
+                  </div>
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    Partial payment must be at least Rs {MIN_PARTIAL_PAYMENT.toLocaleString()}.
+                  </p>
+                </div>
+
+                <div>
+                  <label className={labelClass}>{paymentOption === "full" ? "Amount to Pay" : "Partial Amount to Pay"} *</label>
+                  <input
+                    type="number"
+                    min={paymentOption === "partial" ? MIN_PARTIAL_PAYMENT : 0}
+                    max={finalAmount || undefined}
+                    value={paymentAmount}
+                    readOnly={paymentOption === "full"}
+                    onChange={(e) => {
+                      setPaymentAmount(e.target.value);
+                      setErrors((current) => ({ ...current, paymentAmount: "" }));
                     }}
+                    placeholder={paymentOption === "full" ? "Auto-filled from final amount" : "Enter amount"}
+                    className={inputClass(!!errors.paymentAmount)}
                   />
-                  <Label htmlFor="terms" className="text-sm leading-6 cursor-pointer flex-1 font-medium">
-                    I have read and agree to the stall booking Terms & Conditions.
-                  </Label>
+                  {errors.paymentAmount && <p className={errorClass}>{errors.paymentAmount}</p>}
+                  {!errors.paymentAmount && paymentOption === "partial" && finalAmount > 0 ? (
+                    <p className="mt-2 text-xs text-muted-foreground">
+                      Remaining amount after this payment: Rs {Math.max(finalAmount - numericPaymentAmount, 0).toLocaleString()}
+                    </p>
+                  ) : null}
+                </div>
+
+                <div className="pt-4 border-t border-border">
+                  <label className={labelClass}>Receipt</label>
+                  <input
+                    type="file"
+                    accept="image/*,.pdf"
+                    className={inputClass(false)}
+                    onChange={(e) => setReceiptImage(e.target.files?.[0] || null)}
+                  />
+                </div>
+
+                <div className="pt-4 border-t border-border">
+                  <label className={labelClass}>
+                    <span className="flex items-center gap-2">
+                      <Receipt className="w-4 h-4 text-muted-foreground" />
+                      Transaction ID / Reference Number
+                    </span>
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      className={`${baseInputClass} pl-10 pr-10 font-mono text-sm tracking-wide`}
+                      placeholder="e.g., TXN123456789"
+                      value={form.transactionId}
+                      onChange={(e) => update("transactionId", e.target.value.toUpperCase())}
+                    />
+                    <Receipt className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    {form.transactionId && (
+                      <button
+                        type="button"
+                        onClick={() => navigator.clipboard.writeText(form.transactionId)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded hover:bg-muted transition-colors"
+                        title="Copy transaction ID"
+                      >
+                        <Copy className="w-4 h-4 text-muted-foreground hover:text-foreground" />
+                      </button>
+                    )}
                   </div>
                 </div>
-                {errors.terms && <p className={errorClass}>{errors.terms}</p>}
+
+                {/* Terms & Conditions Checkbox */}
+                <div className="pt-6 border-t border-border">
+                  <div className="space-y-3 rounded-xl border bg-muted/30 p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="pr-2">
+                        <p className="text-sm font-semibold text-foreground">Terms & Conditions</p>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          Review the booking terms without leaving this form.
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setIsTermsDialogOpen(true)}
+                        className="shrink-0 rounded-lg border border-border bg-background px-3 py-2 text-sm font-semibold text-primary transition-colors hover:bg-muted"
+                      >
+                        Read Terms
+                      </button>
+                    </div>
+                    <div className="flex items-start space-x-3">
+                      <Checkbox
+                        id="terms"
+                        checked={acceptedTerms}
+                        onCheckedChange={(checked) => {
+                          setAcceptedTerms(Boolean(checked));
+                          setErrors((current) => ({ ...current, terms: "" }));
+                        }}
+                      />
+                      <Label htmlFor="terms" className="text-sm leading-6 cursor-pointer flex-1 font-medium">
+                        I have read and agree to the stall booking Terms & Conditions.
+                      </Label>
+                    </div>
+                  </div>
+                  {errors.terms && <p className={errorClass}>{errors.terms}</p>}
+                </div>
               </div>
-            </div>
-          )}
+            )}
 
-          {/* Navigation */}
-          {step > 0 && (
-            <div className="flex justify-between mt-8 pt-6 border-t border-border">
-              <button onClick={prev} className="flex items-center gap-2 px-6 py-3 rounded-lg border border-border text-foreground font-medium hover:bg-muted transition-colors">
-                <ArrowLeft className="w-4 h-4" /> Back
-              </button>
-              {step < steps.length - 1 ? (
-                <button onClick={() => {
-                  if (validateStep()) {
-                    next();
-                  }
-                }} className="flex items-center gap-2 px-6 py-3 rounded-lg bg-primary text-primary-foreground font-semibold hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed">
-                  Next <ArrowRight className="w-4 h-4" />
+            {/* Navigation */}
+            {step > 0 && (
+              <div className="flex justify-between mt-8 pt-6 border-t border-border">
+                <button onClick={prev} className="flex items-center gap-2 px-6 py-3 rounded-lg border border-border text-foreground font-medium hover:bg-muted transition-colors">
+                  <ArrowLeft className="w-4 h-4" /> Back
                 </button>
-              ) : (
-                <button
-                  className="flex items-center gap-2 px-8 py-3 rounded-lg bg-secondary text-secondary-foreground font-semibold hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
-                  onClick={async () => {
+                {step < steps.length - 1 ? (
+                  <button onClick={() => {
                     if (validateStep()) {
-                      setMessage("");
-                      try {
-                        let remainingPaymentAmount = numericPaymentAmount;
-                        for (const group of selectedBookingGroups) {
-                          const groupPaymentAmount =
-                            paymentOption === "full" ? group.lineAmount : getDistributedPaymentAmount(group.lineAmount, remainingPaymentAmount);
-                          if (paymentOption === "partial") {
-                            remainingPaymentAmount = Math.max(remainingPaymentAmount - groupPaymentAmount, 0);
-                          }
-                          const payload = new FormData();
-                          payload.append("vendorName", form.name);
-                          payload.append("vendorEmail", form.email);
-                          payload.append("mobile", form.mobile);
-                          payload.append("businessName", form.businessName);
-                          payload.append("gstNumber", form.gst);
-                          payload.append("address", form.address);
-                          payload.append("city", form.city);
-                          payload.append("state", form.state);
-                          payload.append("pincode", form.pincode);
-                          payload.append("eventId", form.selectedEvent);
-                          payload.append("zoneId", group.zoneId);
-                          payload.append("categoryId", group.categoryId);
-                          payload.append("stallSize", DEFAULT_STALL_SIZE);
-                          payload.append("quantity", String(group.stallNumbers.length));
-                          payload.append("stallNumber", group.stallNumbers.join(", "));
-                          payload.append("paymentMode", form.paymentMode);
-                          payload.append("acceptedTerms", "true");
-                          payload.append("paymentRef", form.transactionId);
-                          payload.append("paymentAmount", String(groupPaymentAmount));
-                          payload.append("finalAmount", String(group.lineAmount));
-                          payload.append("paymentOption", groupPaymentAmount >= group.lineAmount ? "full" : "partial");
-                          if (receiptImage) payload.append("receiptImage", receiptImage);
-                          await createBooking(payload);
-                        }
-                        setMessage("Booking request submitted successfully!");
-                        setTimeout(() => {
-                          window.location.reload();
-                        }, 1500);
-
-                      } catch (error) {
-                        setMessage(error instanceof Error ? error.message : "Failed to submit booking");
-                      }
+                      next();
                     }
-                  }}
-                >
-                  <Check className="w-4 h-4" /> Submit Booking
-                </button>
-              )}
-            </div>
-          )}
-          {message ? (
-            <div className="mt-4 p-4 bg-green-100 border border-green-400 rounded-lg text-green-800 font-semibold text-center animate-pulse">
-              {message}
-            </div>
-          ) : null}
+                  }} className="flex items-center gap-2 px-6 py-3 rounded-lg bg-primary text-primary-foreground font-semibold hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed">
+                    Next <ArrowRight className="w-4 h-4" />
+                  </button>
+                ) : (
+                  <button
+                    className="flex items-center gap-2 px-8 py-3 rounded-lg bg-secondary text-secondary-foreground font-semibold hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+                    onClick={async () => {
+                      if (validateStep()) {
+                        setMessage("");
+                        try {
+                          let remainingPaymentAmount = numericPaymentAmount;
+                          for (const group of selectedBookingGroups) {
+                            const groupPaymentAmount =
+                              paymentOption === "full" ? group.lineAmount : getDistributedPaymentAmount(group.lineAmount, remainingPaymentAmount);
+                            if (paymentOption === "partial") {
+                              remainingPaymentAmount = Math.max(remainingPaymentAmount - groupPaymentAmount, 0);
+                            }
+                            const payload = new FormData();
+                            payload.append("vendorName", form.name);
+                            payload.append("vendorEmail", form.email);
+                            payload.append("mobile", form.mobile);
+                            payload.append("businessName", form.businessName);
+                            payload.append("gstNumber", form.gst);
+                            payload.append("address", form.address);
+                            payload.append("city", form.city);
+                            payload.append("state", form.state);
+                            payload.append("pincode", form.pincode);
+                            payload.append("eventId", form.selectedEvent);
+                            payload.append("zoneId", group.zoneId);
+                            payload.append("categoryId", group.categoryId);
+                            payload.append("stallSize", DEFAULT_STALL_SIZE);
+                            payload.append("quantity", String(group.stallNumbers.length));
+                            payload.append("stallNumber", group.stallNumbers.join(", "));
+                            payload.append("paymentMode", form.paymentMode);
+                            payload.append("acceptedTerms", "true");
+                            payload.append("paymentRef", form.transactionId);
+                            payload.append("paymentAmount", String(groupPaymentAmount));
+                            payload.append("finalAmount", String(group.lineAmount));
+                            payload.append("paymentOption", groupPaymentAmount >= group.lineAmount ? "full" : "partial");
+                            if (receiptImage) payload.append("receiptImage", receiptImage);
+                            await createBooking(payload);
+                          }
+                          setMessage("Booking request submitted successfully!");
+                          setTimeout(() => {
+                            window.location.reload();
+                          }, 1500);
+
+                        } catch (error) {
+                          setMessage(error instanceof Error ? error.message : "Failed to submit booking");
+                        }
+                      }
+                    }}
+                  >
+                    <Check className="w-4 h-4" /> Submit Booking
+                  </button>
+                )}
+              </div>
+            )}
+            {message ? (
+              <div className="mt-4 p-4 bg-green-100 border border-green-400 rounded-lg text-green-800 font-semibold text-center animate-pulse">
+                {message}
+              </div>
+            ) : null}
 
           </div>
         </div>
@@ -1111,41 +1136,41 @@ const StallBookingForm = () => {
               tabIndex={0}
               style={{ touchAction: "none" }}
             >
-                <div className="absolute right-3 top-3 z-10 flex flex-col overflow-hidden rounded-lg border border-border bg-background/95 shadow-sm">
-                  <button
-                    type="button"
-                    onPointerDown={(event) => event.stopPropagation()}
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      applyZoom(0.2);
-                    }}
-                    className="flex h-10 w-10 items-center justify-center text-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
-                    disabled={layoutZoom >= 3}
-                    aria-label="Zoom in"
-                  >
-                    <Plus className="h-4 w-4" />
-                  </button>
-                  <button
-                    type="button"
-                    onPointerDown={(event) => event.stopPropagation()}
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      applyZoom(-0.2);
-                    }}
-                    className="flex h-10 w-10 items-center justify-center border-t border-border text-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
-                    disabled={layoutZoom <= 1}
-                    aria-label="Zoom out"
-                  >
-                    <Minus className="h-4 w-4" />
-                  </button>
-                </div>
-                <img
-                  src={venueLayoutImage}
-                  alt="Venue layout full preview"
-                  className="h-full w-full rounded-lg bg-white object-contain"
-                  draggable={false}
-                  style={layoutTransformStyle}
-                />
+              <div className="absolute right-3 top-3 z-10 flex flex-col overflow-hidden rounded-lg border border-border bg-background/95 shadow-sm">
+                <button
+                  type="button"
+                  onPointerDown={(event) => event.stopPropagation()}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    applyZoom(0.2);
+                  }}
+                  className="flex h-10 w-10 items-center justify-center text-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
+                  disabled={layoutZoom >= 3}
+                  aria-label="Zoom in"
+                >
+                  <Plus className="h-4 w-4" />
+                </button>
+                <button
+                  type="button"
+                  onPointerDown={(event) => event.stopPropagation()}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    applyZoom(-0.2);
+                  }}
+                  className="flex h-10 w-10 items-center justify-center border-t border-border text-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
+                  disabled={layoutZoom <= 1}
+                  aria-label="Zoom out"
+                >
+                  <Minus className="h-4 w-4" />
+                </button>
+              </div>
+              <img
+                src={venueLayoutImage}
+                alt="Venue layout full preview"
+                className="h-full w-full rounded-lg bg-white object-contain"
+                draggable={false}
+                style={layoutTransformStyle}
+              />
             </div>
           </div>
         </div>
