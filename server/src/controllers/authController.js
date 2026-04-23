@@ -1,5 +1,16 @@
+const crypto = require("crypto");
 const { User } = require("../models/User");
 const { signToken } = require("../utils/jwt");
+
+const RESET_CODE_TTL_MS = 10 * 60 * 1000;
+
+function createResetCode() {
+  return String(Math.floor(100000 + Math.random() * 900000));
+}
+
+function hashResetCode(code) {
+  return crypto.createHash("sha256").update(String(code)).digest("hex");
+}
 
 async function login(req, res) {
   const { email, password } = req.body || {};
@@ -12,12 +23,7 @@ async function login(req, res) {
     return res.status(401).json({ message: "Invalid credentials" });
   }
 
-  console.log("INPUT PASSWORD:", password);
-  console.log("DB HASH:", user.password);
-
   const ok = await user.verifyPassword(String(password));
-  console.log("MATCH RESULT:", ok);
- 
 
   if (!ok) {
     return res.status(401).json({ message: "Invalid credentials" });
@@ -38,6 +44,69 @@ async function login(req, res) {
   });
 }
 
+async function requestPasswordReset(req, res) {
+  const { email } = req.body || {};
+
+  if (!email) {
+    return res.status(400).json({ message: "Email is required" });
+  }
+
+  const normalizedEmail = String(email).toLowerCase().trim();
+  const user = await User.findOne({ email: normalizedEmail }).select("+resetPasswordCode +resetPasswordExpiresAt");
+
+  if (!user) {
+    return res.json({
+      message: "If an account exists for this email, a reset code has been generated.",
+    });
+  }
+
+  const resetCode = createResetCode();
+  user.resetPasswordCode = hashResetCode(resetCode);
+  user.resetPasswordExpiresAt = new Date(Date.now() + RESET_CODE_TTL_MS);
+  await user.save();
+
+  return res.json({
+    message: "Reset code generated. Use it to create a new password.",
+    resetCode,
+    expiresInMinutes: RESET_CODE_TTL_MS / (60 * 1000),
+  });
+}
+
+async function resetPassword(req, res) {
+  const { email, code, newPassword } = req.body || {};
+
+  if (!email || !code || !newPassword) {
+    return res.status(400).json({ message: "Email, reset code, and new password are required" });
+  }
+
+  const normalizedEmail = String(email).toLowerCase().trim();
+  const user = await User.findOne({ email: normalizedEmail }).select(
+    "+password +resetPasswordCode +resetPasswordExpiresAt",
+  );
+
+  if (!user || !user.resetPasswordCode || !user.resetPasswordExpiresAt) {
+    return res.status(400).json({ message: "Invalid or expired reset code" });
+  }
+
+  if (user.resetPasswordExpiresAt.getTime() < Date.now()) {
+    user.resetPasswordCode = null;
+    user.resetPasswordExpiresAt = null;
+    await user.save();
+    return res.status(400).json({ message: "Invalid or expired reset code" });
+  }
+
+  if (user.resetPasswordCode !== hashResetCode(code)) {
+    return res.status(400).json({ message: "Invalid or expired reset code" });
+  }
+
+  user.password = await User.hashPassword(String(newPassword));
+  user.resetPasswordCode = null;
+  user.resetPasswordExpiresAt = null;
+  await user.save();
+
+  return res.json({ message: "Password updated successfully. Please sign in with your new password." });
+}
+
 async function me(req, res) {
   const id = req.user?.sub;
   const user = await User.findById(id);
@@ -45,4 +114,4 @@ async function me(req, res) {
   return res.json({ id: user._id.toString(), name: user.name, email: user.email, role: user.role, status: user.status });
 }
 
-module.exports = { login, me };
+module.exports = { login, requestPasswordReset, resetPassword, me };

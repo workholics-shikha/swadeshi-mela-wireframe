@@ -58,12 +58,12 @@ const Navbar = () => {
           >
             Vendor Login
           </Link>
-          <Link
+          {/* <Link
             to="/login?redirect=admin"
             className="px-4 py-2.5 rounded-lg bg-secondary text-secondary-foreground font-semibold text-sm hover:opacity-90 transition-opacity"
           >
             Admin Panel
-          </Link>
+          </Link> */}
           <Link
             to="/book-stall"
             className="px-5 py-2.5 rounded-lg bg-primary text-primary-foreground font-semibold text-sm hover:opacity-90 transition-opacity"

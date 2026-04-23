@@ -39,6 +39,7 @@ export function EventCreatePage({ setPage }: { setPage: SetPage }) {
     organizerContact: "",
     contactEmail: "",
     eventDescription: "",
+    note: "",
     eventCategory: "",
     openingTime: "",
     closingTime: "",
@@ -109,6 +110,7 @@ export function EventCreatePage({ setPage }: { setPage: SetPage }) {
         title: form.eventName,
         category: form.eventCategory,
         description: form.eventDescription,
+        note: form.note,
         startDate: form.startDate,
         endDate: form.endDate,
         openingTime: form.openingTime,
@@ -285,6 +287,15 @@ export function EventCreatePage({ setPage }: { setPage: SetPage }) {
               onChange={(e) => update("eventDescription", e.target.value)}
             />
           </div>
+          <div className="mt-4">
+            <p className="mb-2 text-sm font-semibold text-[var(--text-main)]">Note</p>
+            <textarea
+              className="min-h-24 w-full rounded-[16px] border border-[color:var(--border-soft)] bg-white px-4 py-3 text-sm text-[var(--text-main)] outline-none"
+              value={form.note}
+              onChange={(e) => update("note", e.target.value)}
+              placeholder="Optional note to show at the end of the stall booking form"
+            />
+          </div>
         </Card>
       )}
 
@@ -416,6 +427,7 @@ export function EventCreatePage({ setPage }: { setPage: SetPage }) {
                 ["Public Registration", form.publicRegistration || "-"],
                 ["Organizer Contact", form.organizerContact || "-"],
                 ["Contact Email", form.contactEmail || "-"],
+                ["Note", form.note || "-"],
                 ["Banner", form.bannerImage ? form.bannerImage.name : "Not selected"],
                 ["Gallery Images", form.galleryImages.length ? `${form.galleryImages.length} file(s)` : "Not selected"],
                 ["Total Stalls", form.totalStalls || "0"],

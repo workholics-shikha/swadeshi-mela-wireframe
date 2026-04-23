@@ -29,6 +29,8 @@ function createApp({ jwtSecret, jwtExpiresIn }) {
   app.use("/api/vendors", createVendorRouter({ jwtSecret }));
   app.use("/api/zones", createZoneRouter({ jwtSecret }));
 
+  
+
   // 404
   app.use((req, res) => res.status(404).json({ message: "Not found" }));
 

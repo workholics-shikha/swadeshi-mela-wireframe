@@ -23,8 +23,8 @@ type SidebarSection = { title: string; items: ReadonlyArray<SidebarItem> };
 type QuickAccessItem = { id: PageId; label: string };
 
 const roleAllowedPages: Record<UserRole, ReadonlyArray<PageId>> = {
-  Admin: ["dashboard","events","event-create","event-details","event-edit","categories","zones","stalls","bookings","booking-create","vendors","approvals","payments","reports","notifications","settings"],
-  Vendor: ["dashboard","bookings","vendors","payments","settings"],
+  Admin: ["dashboard", "events", "event-create", "event-details", "event-edit", "categories", "zones", "stalls", "bookings", "booking-create", "vendors", "approvals", "payments", "reports", "notifications", "settings"],
+  Vendor: ["dashboard", "bookings", "vendors", "payments", "settings"],
 };
 
 export const pageMeta: Record<PageId, PageMeta> = {
@@ -47,23 +47,23 @@ export const pageMeta: Record<PageId, PageMeta> = {
 };
 
 const adminSidebarSections: ReadonlyArray<SidebarSection> = [
-  { title: "Main", items: [{ id: "dashboard", label: "Dashboard" },{ id: "zones", label: "Zones" },{ id: "categories", label: "Categories" },{ id: "events", label: "Events" },{ id: "stalls", label: "Stalls" },{ id: "bookings", label: "Bookings" }] },
+  { title: "Main", items: [{ id: "dashboard", label: "Dashboard" }, { id: "zones", label: "Zones" }, { id: "categories", label: "Categories" }, { id: "events", label: "Events" }, { id: "stalls", label: "Stalls" }, { id: "bookings", label: "Bookings" }] },
   { title: "Vendors", items: [{ id: "approvals", label: "Vendors" }] },
   { title: "Finance", items: [{ id: "payments", label: "Payments" }] },
   { title: "System", items: [{ id: "notifications", label: "Notifications" }] },
 ];
 
 const vendorSidebarSections: ReadonlyArray<SidebarSection> = [
-  { title: "Main", items: [{ id: "dashboard", label: "Dashboard" },{ id: "bookings", label: "My Bookings" }] },
-  { title: "Account", items: [{ id: "vendors", label: "My Profile" },{ id: "payments", label: "Payments" }] },
+  { title: "Main", items: [{ id: "dashboard", label: "Dashboard" }, { id: "bookings", label: "My Bookings" }] },
+  { title: "Account", items: [{ id: "vendors", label: "My Profile" }, { id: "payments", label: "Payments" }] },
 ];
 
 const adminQuickAccess: ReadonlyArray<QuickAccessItem> = [
-  { id: "dashboard", label: "Dashboard" },{ id: "categories", label: "Categories" },{ id: "zones", label: "Zones" },{ id: "stalls", label: "Stalls" },{ id: "bookings", label: "Bookings" },{ id: "payments", label: "Payments" },
+  { id: "dashboard", label: "Dashboard" }, { id: "categories", label: "Categories" }, { id: "zones", label: "Zones" }, { id: "stalls", label: "Stalls" }, { id: "bookings", label: "Bookings" }, { id: "payments", label: "Payments" },
 ];
 
 const vendorQuickAccess: ReadonlyArray<QuickAccessItem> = [
-  { id: "dashboard", label: "Overview" },{ id: "bookings", label: "My Bookings" },{ id: "payments", label: "Payments" },
+  { id: "dashboard", label: "Overview" }, { id: "bookings", label: "My Bookings" }, { id: "payments", label: "Payments" },
 ];
 
 export const roleNavigation: Record<UserRole, { sidebarSections: ReadonlyArray<SidebarSection>; quickAccessPages: ReadonlyArray<QuickAccessItem>; defaultPage: PageId }> = {
@@ -75,17 +75,16 @@ export function getPageHeaderOverview(page: PageId, role: UserRole): HeaderOverv
   if (page === "dashboard") {
     return role === "Admin"
       ? {
-          eyebrow: "Swadeshi Mela control room",
-          title: "Executive Overview",
-          description: "A fast read on occupancy, revenue, approvals, and operational momentum across the mela.",
-          // actions: ["View reports", "Manage vendors"],
-        }
+        eyebrow: "Swadeshi Mela control room",
+        title: "Executive Overview",
+        description: "A fast read on occupancy, revenue, approvals, and operational momentum across the mela.",
+      }
       : {
-          eyebrow: "Vendor command center",
-          title: "Business Snapshot",
-          description: "Track your stalls, application status, payments, and visibility before the mela opens.",
-          actions: ["My bookings"],
-        };
+        eyebrow: "Vendor command center",
+        title: "Business Snapshot",
+        description: "Track your stalls, application status, payments, and visibility before the mela opens.",
+        actions: ["My bookings"],
+      };
   }
 
   const overviewByPage: Partial<Record<PageId, HeaderOverview>> = {
@@ -93,13 +92,11 @@ export function getPageHeaderOverview(page: PageId, role: UserRole): HeaderOverv
       eyebrow: "Swadeshi Mela control room",
       title: "Event Management",
       description: "Review existing mela events, statuses, and create new event records.",
-      // actions: ["Create new event"],
     },
     "event-create": {
       eyebrow: "Swadeshi Mela control room",
       title: "Create New Mela Event",
       description: "Basic event details, category allocation, and final review before publishing.",
-      // actions: ["Save draft", "Continue setup"],
     },
     "event-details": {
       eyebrow: "Swadeshi Mela control room",
@@ -111,25 +108,21 @@ export function getPageHeaderOverview(page: PageId, role: UserRole): HeaderOverv
       eyebrow: "Swadeshi Mela control room",
       title: "Edit Event",
       description: "Update event metadata and operational settings while keeping existing structure.",
-      // actions: [ "Save changes"],
     },
     categories: {
       eyebrow: "Swadeshi Mela control room",
       title: "Category Management",
       description: "Create and manage stall and event categories from one dedicated admin section.",
-      // actions: ["Save categories" ],
     },
     zones: {
       eyebrow: "Swadeshi Mela control room",
       title: "Zone Management",
       description: "Create and maintain zone masters for consistent operational planning.",
-      // actions: ["Create zone", "Export zones"],
     },
     stalls: {
       eyebrow: "Swadeshi Mela control room",
       title: "Interactive Stall Allocation",
       description: "Zone occupancy, availability, and quick assignment tools for the mela floor.",
-      // actions: ["All zones", "Assign stall"],
     },
     bookings: {
       eyebrow: role === "Admin" ? "Swadeshi Mela control room" : "Vendor command center",
@@ -137,7 +130,7 @@ export function getPageHeaderOverview(page: PageId, role: UserRole): HeaderOverv
       description: role === "Admin"
         ? "A central place to handle reservations, payment status, and assignment escalations."
         : "Review your booking progress, stall allotment, and latest status updates.",
-      actions: role === "Admin" ? ["Export bookings" ] : ["My bookings"],
+      actions: role === "Admin" ? ["Export bookings"] : ["My bookings"],
     },
     "booking-create": {
       eyebrow: "Swadeshi Mela control room",
@@ -151,13 +144,11 @@ export function getPageHeaderOverview(page: PageId, role: UserRole): HeaderOverv
       description: role === "Admin"
         ? "Combines the vendor dashboard and application screen into one connected admin view."
         : "View your vendor profile, linked booking details, and account status in one place.",
-      // actions: ["Open approvals", "View public directory"],
     },
     approvals: {
       eyebrow: "Swadeshi Mela control room",
       title: "Vendors",
       description: "Browse vendor accounts and update their approval status from one place.",
-      // actions: ["Export list"],
     },
     payments: {
       eyebrow: role === "Admin" ? "Swadeshi Mela control room" : "Vendor command center",

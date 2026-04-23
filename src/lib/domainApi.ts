@@ -13,6 +13,7 @@ export type ZoneItem = {
 export type EventItem = {
   _id: string;
   title: string;
+  note?: string;
   startDate: string;
   endDate: string;
   openingTime: string;
@@ -119,6 +120,7 @@ export async function createEvent(data: {
   title: string;
   category: string;
   description: string;
+  note?: string;
   startDate: string;
   endDate: string;
   openingTime: string;
@@ -139,6 +141,7 @@ export async function createEvent(data: {
   fd.append("title", data.title);
   fd.append("category", data.category);
   fd.append("description", data.description);
+  fd.append("note", data.note || "");
   fd.append("startDate", data.startDate);
   fd.append("endDate", data.endDate);
   fd.append("openingTime", data.openingTime);
@@ -166,6 +169,7 @@ export async function updateEvent(
     title: string;
     category: string;
     description: string;
+    note: string;
     startDate: string;
     endDate: string;
     openingTime: string;
@@ -275,4 +279,4 @@ export async function removeZone(id: string) {
   const res = await apiFetch(`/api/zones/${id}`, { method: "DELETE" });
   return res.json();
 }
-
+ 

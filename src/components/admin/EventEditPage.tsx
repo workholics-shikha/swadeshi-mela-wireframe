@@ -30,6 +30,7 @@ export function EventEditPage({ setPage }: { setPage: SetPage }) {
     title: "",
     category: "",
     description: "",
+    note: "",
     startDate: "",
     endDate: "",
     openingTime: "",
@@ -72,6 +73,7 @@ export function EventEditPage({ setPage }: { setPage: SetPage }) {
       title: selectedEvent.title || "",
       category: selectedEvent.category?._id || "",
       description: selectedEvent.description || "",
+      note: selectedEvent.note || "",
       startDate: selectedEvent.startDate?.slice(0, 10) || "",
       endDate: selectedEvent.endDate?.slice(0, 10) || "",
       openingTime: selectedEvent.openingTime || "",
@@ -199,6 +201,10 @@ export function EventEditPage({ setPage }: { setPage: SetPage }) {
         <div className="mt-4">
           <p className="mb-2 text-sm font-semibold text-[var(--text-main)]">Description</p>
           <textarea className="min-h-24 w-full rounded-[16px] border border-[color:var(--border-soft)] bg-white px-4 py-3 text-sm text-[var(--text-main)] outline-none" value={form.description} onChange={(e) => update("description", e.target.value)} />
+        </div>
+        <div className="mt-4">
+          <p className="mb-2 text-sm font-semibold text-[var(--text-main)]">Note</p>
+          <textarea className="min-h-24 w-full rounded-[16px] border border-[color:var(--border-soft)] bg-white px-4 py-3 text-sm text-[var(--text-main)] outline-none" value={form.note} onChange={(e) => update("note", e.target.value)} />
         </div>
         {/* Category Rows Section */}
         <div className="space-y-4 mt-6">

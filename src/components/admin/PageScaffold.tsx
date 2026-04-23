@@ -77,7 +77,7 @@ export function ActionList({ actions }: { actions: string[] }) {
 
 export function StatsRow({ stats }: { stats: [string, string][] }) {
   return (
-    <div className="grid gap-4 sm:grid-cols-3">
+    <div className="grid gap-4 sm:grid-cols-4">
       {stats.map(([label, value]) => (
         <div className="rounded-[20px] border border-[color:var(--border-soft)] bg-[linear-gradient(160deg,rgba(255,255,255,0.85),rgba(217,106,20,0.08))] p-4" key={label}>
           <p className="text-xs uppercase tracking-[0.18em] text-[var(--text-muted)]">{label}</p>

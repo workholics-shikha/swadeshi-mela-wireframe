@@ -14,6 +14,12 @@ type LoginResponse = {
   };
 };
 
+type ForgotPasswordResponse = {
+  message: string;
+  resetCode?: string;
+  expiresInMinutes?: number;
+};
+
 const TOKEN_KEY = "swadeshi_token";
 const USER_KEY = "swadeshi_user";
 
@@ -92,4 +98,35 @@ export async function loginWithEmailPassword(email: string, password: string) {
   localStorage.setItem(TOKEN_KEY, data.token);
   localStorage.setItem(USER_KEY, JSON.stringify(data.user));
   return data.user;
+}
+
+export async function requestPasswordReset(email: string) {
+  const response = await fetch(buildApiUrl("/api/auth/forgot-password"), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email }),
+  });
+
+  const payload = (await response.json()) as ForgotPasswordResponse | { message?: string };
+  if (!response.ok) {
+    const message = "message" in payload && payload.message ? payload.message : "Unable to generate reset code";
+    throw new Error(message);
+  }
+
+  return payload as ForgotPasswordResponse;
+}
+
+export async function resetPasswordWithCode(email: string, code: string, newPassword: string) {
+  const response = await fetch(buildApiUrl("/api/auth/reset-password"), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, code, newPassword }),
+  });
+
+  const payload = (await response.json()) as { message?: string };
+  if (!response.ok) {
+    throw new Error(payload.message || "Unable to reset password");
+  }
+
+  return payload;
 }

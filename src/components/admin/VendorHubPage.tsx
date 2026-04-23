@@ -24,6 +24,15 @@ export function VendorHubPage({ setPage }: { setPage: SetPage }) {
     [activeBookings],
   );
 
+  const totalPending = useMemo(
+    () =>
+      activeBookings.reduce(
+        (sum, booking) => sum + Math.max(Number(booking.finalAmount || 0) - Number(booking.paymentAmount || 0), 0),
+        0,
+      ),
+    [activeBookings],
+  );
+
   const latestBooking = bookings[0];
   const profileFields: [string, string][] = [
     ["Vendor Name", currentUser?.name || latestBooking?.vendorName || "-"],
@@ -36,10 +45,11 @@ export function VendorHubPage({ setPage }: { setPage: SetPage }) {
 
   const vendorUpdates = activeBookings.length
     ? activeBookings.slice(0, 3).map((booking) => {
-        const eventName = booking.event?.title || "your selected event";
-        const zoneName = booking.zone?.zoneName || booking.allotment?.zone || "zone not assigned yet";
-        return `${eventName}: ${booking.status} booking for ${booking.quantity} stall(s) in ${zoneName}.`;
-      })
+      const eventName = booking.event?.title || "your selected event";
+      const zoneName = booking.zone?.zoneName || booking.allotment?.zone || "zone not assigned yet";
+      const pendingAmount = Math.max(Number(booking.finalAmount || 0) - Number(booking.paymentAmount || 0), 0);
+      return `${eventName}: ${booking.status} booking for ${booking.quantity} stall(s) in ${zoneName}. Pending Rs ${pendingAmount.toLocaleString()}.`;
+    })
     : ["No bookings are linked to this vendor account yet."];
 
   return (
@@ -50,6 +60,7 @@ export function VendorHubPage({ setPage }: { setPage: SetPage }) {
             stats={[
               ["Allocated stalls", activeBookings.reduce((sum, booking) => sum + Number(booking.quantity || 1), 0).toLocaleString()],
               ["Amount paid", `Rs ${totalPaid.toLocaleString()}`],
+              ["Pending amount", `Rs ${totalPending.toLocaleString()}`],
               ["Bookings", bookings.length.toLocaleString()],
             ]}
           />

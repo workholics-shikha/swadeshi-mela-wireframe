@@ -91,10 +91,17 @@ export function DashboardPage({ userRole }: DashboardPageProps) {
       .filter((b) => b.status !== "rejected")
       .reduce((sum, b) => sum + getCollectedAmount(b), 0);
 
+    const totalPending =
+      bookings.reduce(
+        (sum, booking) => sum + Math.max(Number(booking.finalAmount || 0) - Number(booking.paymentAmount || 0), 0),
+        0,
+      );  
+
     return [
       ["Total Stalls", totalStalls.toLocaleString()],
       ["Booked", bookedStalls.toLocaleString()],
       ["Revenue Collected", `Rs ${revenue.toLocaleString()}`],
+      ["Pending amount", `Rs ${totalPending.toLocaleString()}`],
     ] as [string, string][];
   }, [bookings, events]);
 
@@ -103,10 +110,16 @@ export function DashboardPage({ userRole }: DashboardPageProps) {
     const allocatedStalls = activeBookings.reduce((sum, booking) => sum + Number(booking.quantity || 1), 0);
     const amountPaid = activeBookings.reduce((sum, booking) => sum + getPaidAmount(booking), 0);
     const approvedBookings = activeBookings.filter((booking) => booking.status === "approved").length;
+    const totalPending =
+      activeBookings.reduce(
+        (sum, booking) => sum + Math.max(Number(booking.finalAmount || 0) - Number(booking.paymentAmount || 0), 0),
+        0,
+      );
 
     return [
       ["Allocated Stalls", allocatedStalls.toLocaleString()],
       ["Amount Paid", `Rs ${amountPaid.toLocaleString()}`],
+      ["Pending amount", `Rs ${totalPending.toLocaleString()}`],
       ["Approved Bookings", approvedBookings.toLocaleString()],
     ] as [string, string][];
   }, [bookings]);
@@ -146,19 +159,19 @@ export function DashboardPage({ userRole }: DashboardPageProps) {
 
     return isAdmin
       ? bookings.slice(0, 10).map((b) => [
-          b._id.slice(-6).toUpperCase(),
-          b.vendorName,
-          b.category?.name || "-",
-          `Rs ${getPaidAmount(b).toLocaleString()}`,
-          capitalize(b.status),
-        ])
+        b._id.slice(-6).toUpperCase(),
+        b.vendorName,
+        b.category?.name || "-",
+        `Rs ${getPaidAmount(b).toLocaleString()}`,
+        capitalize(b.status),
+      ])
       : bookings.slice(0, 10).map((b) => [
-          b._id.slice(-6).toUpperCase(),
-          b.event?.title || "-",
-          b.zone?.zoneName || b.allotment?.zone || "-",
-          `Rs ${getPaidAmount(b).toLocaleString()}`,
-          capitalize(b.status),
-        ]);
+        b._id.slice(-6).toUpperCase(),
+        b.event?.title || "-",
+        b.zone?.zoneName || b.allotment?.zone || "-",
+        `Rs ${getPaidAmount(b).toLocaleString()}`,
+        capitalize(b.status),
+      ]);
   }, [bookings, isAdmin, loading]);
 
   const tableHeaders = isAdmin

@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
-import { Card, InfoList, SimpleTable } from "./PageScaffold";
+import { Card, SimpleTable, StatsRow } from "./PageScaffold";
 import { getBookings, payBookingBalance, type BookingItem } from "@/lib/domainApi";
 import { getCurrentUser } from "@/lib/auth";
 import { toast } from "@/components/ui/sonner";
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 
 function getPaymentRecords(booking: BookingItem) {
   if (booking.paymentRecords?.length) {
@@ -26,12 +27,14 @@ function getPaymentRecords(booking: BookingItem) {
 }
 
 export function PaymentsPage() {
+  const pageSize = 8;
   const currentUser = getCurrentUser();
   const isVendor = currentUser?.role === "vendor";
   const isAdmin = currentUser?.role === "admin";
   const [bookings, setBookings] = useState<BookingItem[]>([]);
   const [submittingId, setSubmittingId] = useState<string | null>(null);
   const [paymentDrafts, setPaymentDrafts] = useState<Record<string, { amount: string; paymentRef: string; paymentType: string }>>({});
+  const [currentPage, setCurrentPage] = useState(1);
 
   const loadBookings = () => {
     getBookings()
@@ -77,6 +80,26 @@ export function PaymentsPage() {
       record.paidAt ? `${new Date(record.paidAt).toLocaleDateString("en-IN")} • ${record.paymentType || "part-payment"}` : booking.status,
     ]);
   });
+
+  const totalPages = Math.max(1, Math.ceil(paymentRows.length / pageSize));
+  const safeCurrentPage = Math.min(currentPage, totalPages);
+  const paginatedPaymentRows = useMemo(() => {
+    const startIndex = (safeCurrentPage - 1) * pageSize;
+    return paymentRows.slice(startIndex, startIndex + pageSize);
+  }, [pageSize, paymentRows, safeCurrentPage]);
+
+  const payableBookings = useMemo(
+    () =>
+      bookings.filter((booking) => {
+        if (booking.status === "rejected") return true;
+        return Math.max(Number(booking.finalAmount || 0) - Number(booking.paymentAmount || 0), 0) > 0;
+      }),
+    [bookings],
+  );
+
+  useEffect(() => {
+    setCurrentPage((page) => Math.min(page, totalPages));
+  }, [totalPages]);
 
   const handleDraftChange = (bookingId: string, field: "amount" | "paymentRef" | "paymentType", value: string) => {
     setPaymentDrafts((current) => ({
@@ -128,18 +151,67 @@ export function PaymentsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="grid gap-6 xl:grid-cols-[1.35fr_1fr]">
-        <Card title="Payment Summary" subtitle="Live payment totals calculated from your bookings.">
-          <InfoList items={paymentSummary} />
-        </Card>
-        <SimpleTable title="Payment history" headers={["Txn ID","Event","Stall","Amount","Status"]} rows={paymentRows} />
-      </div>
+      <StatsRow stats={paymentSummary} />
+
+      <SimpleTable
+        title="Payment History"
+        headers={["Txn ID", "Event", "Stall", "Amount", "Status"]}
+        rows={paginatedPaymentRows}
+      />
+
+      {paymentRows.length ? (
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-sm text-[var(--text-soft)]">
+            Showing {(safeCurrentPage - 1) * pageSize + 1}-{Math.min(safeCurrentPage * pageSize, paymentRows.length)} of {paymentRows.length} payment entries
+          </p>
+          <Pagination className="mx-0 w-auto justify-start sm:justify-end">
+            <PaginationContent>
+              <PaginationItem>
+                <PaginationPrevious
+                  className={`rounded-full border border-[color:var(--border-soft)] bg-white/70 ${safeCurrentPage === 1 ? "pointer-events-none opacity-50" : ""}`}
+                  href="#"
+                  onClick={(event) => {
+                    event.preventDefault();
+                    setCurrentPage((page) => Math.max(1, page - 1));
+                  }}
+                />
+              </PaginationItem>
+              {Array.from({ length: totalPages }, (_, index) => index + 1).map((page) => (
+                <PaginationItem key={page}>
+                  <PaginationLink
+                    className="rounded-full border border-[color:var(--border-soft)] bg-white/70 text-[var(--text-soft)]"
+                    href="#"
+                    isActive={page === safeCurrentPage}
+                    onClick={(event) => {
+                      event.preventDefault();
+                      setCurrentPage(page);
+                    }}
+                  >
+                    {page}
+                  </PaginationLink>
+                </PaginationItem>
+              ))}
+              <PaginationItem>
+                <PaginationNext
+                  className={`rounded-full border border-[color:var(--border-soft)] bg-white/70 ${safeCurrentPage === totalPages ? "pointer-events-none opacity-50" : ""}`}
+                  href="#"
+                  onClick={(event) => {
+                    event.preventDefault();
+                    setCurrentPage((page) => Math.min(totalPages, page + 1));
+                  }}
+                />
+              </PaginationItem>
+            </PaginationContent>
+          </Pagination>
+        </div>
+      ) : null}
 
       {isVendor || isAdmin ? (
         <Card title={isAdmin ? "Collect Part Payment" : "Pay Part Payment"} subtitle="Record part payments and keep them synced in booking history.">
+
           <div className="space-y-4">
-            {bookings.length ? (
-              bookings.map((booking) => {
+            {payableBookings.length ? (
+              payableBookings.map((booking) => {
                 const remainingAmount = Math.max(Number(booking.finalAmount || 0) - Number(booking.paymentAmount || 0), 0);
                 const draft = paymentDrafts[booking._id] || { amount: "", paymentRef: "", paymentType: "part-payment" };
                 const disabled = remainingAmount <= 0 || booking.status === "rejected";
@@ -147,12 +219,14 @@ export function PaymentsPage() {
                 return (
                   <div className="rounded-[20px] border border-[color:var(--border-soft)] bg-white/70 p-4" key={booking._id}>
                     <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                      
                       <div>
                         <p className="text-sm font-semibold text-[var(--text-main)]">{booking.event?.title || "Selected event"}</p>
                         <p className="mt-1 text-sm text-[var(--text-soft)]">
                           Booking {booking._id.slice(-6).toUpperCase()} | Stall {booking.allotment?.stallNumber || `${booking.quantity || 1} unit(s)`}
                         </p>
                       </div>
+
                       <div className="text-sm text-[var(--text-soft)]">
                         <p>Final: <span className="font-semibold text-[var(--text-main)]">Rs {Number(booking.finalAmount || 0).toLocaleString()}</span></p>
                         <p>Paid: <span className="font-semibold text-[var(--text-main)]">Rs {Number(booking.paymentAmount || 0).toLocaleString()}</span></p>
@@ -160,7 +234,7 @@ export function PaymentsPage() {
                       </div>
                     </div>
 
-                    <div className="mt-4 grid gap-4 md:grid-cols-[1fr_1fr_auto]">
+                    <div className="mt-4 grid gap-4 md:grid-cols-[1fr_1fr_auto]" >
                       <div>
                         <label className="mb-2 block text-sm font-semibold text-[var(--text-main)]">Part Payment Amount</label>
                         <input
@@ -200,7 +274,7 @@ export function PaymentsPage() {
                 );
               })
             ) : (
-              <p className="text-sm text-[var(--text-soft)]">No vendor bookings are linked to this account yet.</p>
+              <p className="text-sm text-[var(--text-soft)]">No bookings with pending payment are linked to this account right now.</p>
             )}
           </div>
         </Card>

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, useCallback, useRef } from "react";
+import { Link } from "react-router-dom";
 import { Check, ArrowRight, ArrowLeft, Receipt, Copy, Maximize2, X, FileText, Shield, AlertCircle, Plus, Minus, Users, Ban} from "lucide-react";
 import { createBooking, getBookingAvailability, getCategories, getEvents, getZones, type BookingAvailability, type Category, type EventItem, type ZoneItem } from "@/lib/domainApi";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -234,6 +235,7 @@ const StallBookingForm = () => {
   const perStallPrice = Number(selectedCategoryMapping?.amount) || 0;
   const totalStallPrice = selectedBookingGroups.reduce((sum, group) => sum + group.lineAmount, 0);
   const finalAmount = totalStallPrice;
+  const selectedEventNote = selectedEvent?.note?.trim() || "";
   const numericPaymentAmount = Number(paymentAmount) || 0;
   const canLoadAvailability = Boolean(form.selectedEvent && form.selectedZone && form.stallCategory);
 
@@ -991,6 +993,13 @@ const StallBookingForm = () => {
                   </div>
                 </div>
 
+                {selectedEventNote ? (
+                  <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-amber-700">Note</p>
+                    <p className="mt-2 text-sm leading-6 text-amber-900">{selectedEventNote}</p>
+                  </div>
+                ) : null}
+
                 {/* Terms & Conditions Checkbox */}
                 <div className="pt-6 border-t border-border">
                   <div className="space-y-3 rounded-xl border bg-muted/30 p-4">
@@ -1211,7 +1220,7 @@ const StallBookingForm = () => {
                 </section>
               ))}
               <div className="rounded-xl border border-border bg-muted/20 p-4 text-sm text-muted-foreground">
-                For the full standalone page, you can still open <a href="/terms" target="_blank" rel="noreferrer" className="font-semibold text-primary hover:underline">Terms & Conditions</a> in a new tab without interrupting your form.
+                For the full standalone page, you can still open <Link to="/terms" target="_blank" rel="noreferrer" className="font-semibold text-primary hover:underline">Terms & Conditions</Link> in a new tab without interrupting your form.
               </div>
             </div>
           </ScrollArea>
