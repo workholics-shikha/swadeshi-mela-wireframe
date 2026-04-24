@@ -11,7 +11,7 @@ export default function TermsAndConditions() {
     <div className="min-h-screen bg-gradient-to-b from-white to-gray-50">
       <Navbar />
 
-      <main className="py-16 px-4 max-w-5xl mx-auto">
+      <main className="mx-auto max-w-5xl px-4 pb-16 pt-28 md:pt-32">
         {/* Header */}
         <div className="text-center mb-12">
           <h1 className="text-4xl md:text-5xl font-bold mb-4">

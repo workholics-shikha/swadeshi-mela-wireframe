@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -15,6 +15,16 @@ import NotFound from "./pages/NotFound.tsx";
 const queryClient = new QueryClient();
 
 type RequiredRole = "admin" | "vendor";
+
+const RouteScrollRestoration = () => {
+  const { pathname } = useLocation();
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+  }, [pathname]);
+
+  return null;
+};
 
 const ProtectedRoute = ({ role, children }: { role: RequiredRole; children: JSX.Element }) => {
   const token = getAuthToken();
@@ -74,6 +84,7 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
+        <RouteScrollRestoration />
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/index.html" element={<Navigate replace to="/" />} />
